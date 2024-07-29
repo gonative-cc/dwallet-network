@@ -37,6 +37,7 @@ use crate::crypto::twopc_mpc::TwoPCMPCDKGCostParams;
 use crate::crypto::zklogin::{CheckZkloginIdCostParams, CheckZkloginIssuerCostParams};
 use crate::crypto::{twopc_mpc, zklogin};
 use better_any::{Tid, TidAble};
+use light_client::tendermint_lc::TendermintLightClientCostParams;
 use move_binary_format::errors::{PartialVMError, PartialVMResult};
 use move_core_types::{
     annotated_value as A,
@@ -70,6 +71,7 @@ mod transfer;
 mod tx_context;
 mod types;
 mod validator;
+mod light_client;
 
 #[derive(Tid)]
 pub struct NativesCostTable {
@@ -151,6 +153,9 @@ pub struct NativesCostTable {
 
     // TwoPC-MPC.
     pub twopc_mpc_dkg_cost_params: TwoPCMPCDKGCostParams,
+
+    // tendermint light client
+    pub tendermint_light_client_cost_params: TendermintLightClientCostParams
 }
 
 impl NativesCostTable {
@@ -511,6 +516,9 @@ impl NativesCostTable {
                     .sign_verify_encrypted_signature_parts_prehash_cost_base()
                     .into(),
             },
+            tendermint_light_client_cost_params: TendermintLightClientCostParams {
+                tendermint_state_proof_cost_base: protocol_config.tendermint_state_proof_cost_base().into()
+            }
         }
     }
 }
@@ -749,6 +757,11 @@ pub fn all_natives(silent: bool) -> NativeFunctionTable {
             "sign_verify_encrypted_signature_parts_prehash",
             make_native!(twopc_mpc::sign_verify_encrypted_signature_parts_prehash),
         ),
+        (
+            "tendermint_lc",
+            "tendermint_state_proof",
+            make_native!(light_client::tendermint_lc::tendermint_state_proof)
+        )
     ];
     sui_system_natives
         .iter()
