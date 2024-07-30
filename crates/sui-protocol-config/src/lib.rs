@@ -879,7 +879,7 @@ pub struct ProtocolConfig {
     tendermint_state_proof_cost_base: Option<u64>,
     tendermint_init_lc_cost_base: Option<u64>,
     tendermint_verify_lc_cost_base: Option<u64>,
-    tendermint_update_lc_cost_base: Option<u64>
+    tendermint_update_lc_cost_base: Option<u64>,
 }
 
 // feature flags

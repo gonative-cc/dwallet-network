@@ -63,6 +63,7 @@ mod address;
 mod crypto;
 mod dynamic_field;
 mod event;
+mod light_client;
 mod object;
 pub mod object_runtime;
 mod test_scenario;
@@ -71,7 +72,6 @@ mod transfer;
 mod tx_context;
 mod types;
 mod validator;
-mod light_client;
 
 #[derive(Tid)]
 pub struct NativesCostTable {
@@ -155,7 +155,7 @@ pub struct NativesCostTable {
     pub twopc_mpc_dkg_cost_params: TwoPCMPCDKGCostParams,
 
     // tendermint light client
-    pub tendermint_light_client_cost_params: TendermintLightClientCostParams
+    pub tendermint_light_client_cost_params: TendermintLightClientCostParams,
 }
 
 impl NativesCostTable {
@@ -763,23 +763,23 @@ pub fn all_natives(silent: bool) -> NativeFunctionTable {
         (
             "tendermint_lc",
             "tendermint_state_proof",
-            make_native!(light_client::tendermint_lc::tendermint_state_proof)
-        ),
-        (
-            "tendermint_lc", 
-            "tendermint_init_lc", 
-            make_native!(light_client::tendermint_lc::tendermint_init_lc)
+            make_native!(light_client::tendermint_lc::tendermint_state_proof),
         ),
         (
             "tendermint_lc",
-            "tendermint_verify_lc", 
-            make_native!(light_client::tendermint_lc::tendermint_verify_lc)
+            "tendermint_init_lc",
+            make_native!(light_client::tendermint_lc::tendermint_init_lc),
         ),
         (
             "tendermint_lc",
-            "tendermint_update_lc", 
-            make_native!(light_client::tendermint_lc::tendermint_update_lc)
-        )
+            "tendermint_verify_lc",
+            make_native!(light_client::tendermint_lc::tendermint_verify_lc),
+        ),
+        (
+            "tendermint_lc",
+            "tendermint_update_lc",
+            make_native!(light_client::tendermint_lc::tendermint_update_lc),
+        ),
     ];
     sui_system_natives
         .iter()
