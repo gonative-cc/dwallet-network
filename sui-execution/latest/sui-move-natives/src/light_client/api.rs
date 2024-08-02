@@ -2,10 +2,9 @@ use ibc::clients::tendermint::{client_state::ClientState, consensus_state::Conse
 
 use super::context::ClientType;
 
-
 pub struct TendermintClient;
 
-impl<'a> ClientType<'a> for TendermintClient {
+impl<'a, 'b: 'a> ClientType<'a, 'b> for TendermintClient {
     type ClientState = ClientState;
     type ConsensusState = ConsensusState;
 }

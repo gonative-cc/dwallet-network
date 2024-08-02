@@ -1,3 +1,3 @@
-pub mod tendermint_lc;
-mod context;
 mod api;
+mod context;
+pub mod tendermint_lc;
