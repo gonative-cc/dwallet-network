@@ -9,22 +9,27 @@ use move_vm_types::{
 };
 
 use smallvec::smallvec;
-use std::collections::VecDeque;
+use std::{collections::VecDeque, time::Duration};
 
 use ibc::{
-    clients::tendermint::client_state::verify_membership,
+    clients::tendermint::{client_state::{initialise, verify_membership, ClientState}, consensus_state, types::{AllowUpdate, ClientState as ClientStateType, ConsensusState, Header, TrustThreshold}},
     core::{
-        commitment_types::{
+        client::types::Height, commitment_types::{
             commitment::{CommitmentPrefix, CommitmentProofBytes, CommitmentRoot},
             proto::ics23::{commitment_proof, CommitmentProof, HostFunctionsManager},
             specs::ProofSpecs,
-        },
-        host::types::{
-            identifiers::{ClientId, PortId},
+        }, host::types::{
+            identifiers::{ChainId, ClientId, PortId},
             path::{ClientStatePath, CommitmentPath, Path, PortPath},
-        },
-    },
+        }
+    }
 };
+
+use crate::object_runtime::ObjectRuntime;
+
+use super::{api::TendermintClient, context::{self, ClientContext}};
+
+
 
 #[derive(Clone)]
 pub struct TendermintLightClientCostParams {
@@ -54,6 +59,7 @@ pub fn tendermint_state_proof(
     let proof_specs = ProofSpecs::cosmos();
     let prefix = CommitmentPrefix::try_from(prefix.to_vec()).unwrap();
 
+    // TODO: provide right path
     let path = Path::Ports(PortPath(PortId::new("10".to_owned()).unwrap()));
 
     match verify_membership::<HostFunctionsManager>(
@@ -75,12 +81,43 @@ pub fn tendermint_state_proof(
     }
 }
 
-pub fn tendermint_init_lc(
-    context: &mut NativeContext,
+/**
+ * create terdermint light client. 
+ * 
+ */
+pub fn tendermint_init_lc<'a>(
+    context: &'a mut NativeContext,
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
+
+    let cs = pop_arg!(args, Vec<u8>); 
     // TODO: What is ty_args in this case???
+
+    let five_year = 5 * 365 * 24 * 60 * 60; 
+    let client = ClientStateType::new(
+        ChainId::new("ibc-0").unwrap(),
+        TrustThreshold::ONE_THIRD,
+        Duration::new(five_year, 0),
+        Duration::new(five_year + 1, 0),
+        Duration::new(40, 0),
+        Height::new(0, 6).expect("Never fails"),
+        ProofSpecs::cosmos(),
+        vec!["upgrade".to_string(), "upgradedIBCState".to_string()],
+        AllowUpdate {
+            after_expiry: true,
+            after_misbehaviour: true,
+        },
+    ).unwrap();
+
+    let object: &mut ObjectRuntime = context.extensions_mut().get_mut();
+
+    let mut client_context: ClientContext<TendermintClient> = ClientContext::new(object);
+
+    let cs = client_context.convert(cs);
+
+    let client_id = ClientId::new("stand-alone", 0).unwrap();
+    initialise(&client, &mut client_context, &client_id, cs.into());
     Ok(NativeResult::ok(
         context.gas_used(),
         smallvec![Value::bool(true)],

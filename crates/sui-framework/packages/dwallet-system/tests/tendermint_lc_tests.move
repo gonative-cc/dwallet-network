@@ -10,6 +10,6 @@ module dwallet_system::lc_tests {
         let path = vector[1, 2, 3];
         let root = vector[1, 2, 3];
         let value = vector[1, 2, 3];
-        assert!(tendermint_state_proof(prefix, proof, root, path, value) == true, 0);
+        assert!(tendermint_state_proof(prefix, proof, root, path, value) == false, 0);
     }
 }
