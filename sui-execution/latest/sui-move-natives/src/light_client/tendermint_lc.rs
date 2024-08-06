@@ -121,10 +121,7 @@ pub fn tendermint_init_lc(
     )
     .unwrap();
 
-    let tmp = context.extensions_mut();
-    let object: &mut ObjectRuntime = tmp.get_mut();
-
-    let mut client_context: ClientContext<TendermintClient> = ClientContext::new(object);
+    let mut client_context: ClientContext<TendermintClient> = ClientContext::new(context);
 
     let cs = client_context.convert(cs);
 

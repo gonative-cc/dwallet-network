@@ -7,22 +7,19 @@ use ibc::core::client::context::{
 };
 use ibc::core::client::context::{ClientValidationContext, ExtClientValidationContext};
 
-use ibc::core::client::context::consensus_state::ConsensusState as ConsensusStateTrait;
+use move_vm_runtime::native_functions::NativeContext;
 
-use crate::object_runtime::{self, ObjectRuntime};
+use super::api::ClientType;
 
-pub trait ClientType<'a, 'b: 'a>: Sized {
-    type ClientState: ClientStateExecution<ClientContext<'a, 'b, Self>>;
-    type ConsensusState: ConsensusStateTrait + Clone;
-}
 
-pub struct ClientContext<'a, 'b, T: ClientType<'a, 'b>> {
-    object_runtime: &'a mut ObjectRuntime<'b>,
+
+pub struct ClientContext<'a, 'b, 'c, T: ClientType> {
+    object_runtime: &'c mut NativeContext<'a, 'b>,
     _market: PhantomData<T>,
 }
 
-impl<'a, 'b, T: ClientType<'a, 'b>> ClientContext<'a, 'b, T> {
-    pub fn new(object_runtime: &'a mut ObjectRuntime<'b>) -> Self {
+impl<'a, 'b, 'c, T: ClientType> ClientContext<'a, 'b, 'c, T> {
+    pub fn new(object_runtime: &'c mut NativeContext<'a, 'b>) -> Self {
         Self {
             _market: PhantomData,
             object_runtime,
@@ -33,7 +30,7 @@ impl<'a, 'b, T: ClientType<'a, 'b>> ClientContext<'a, 'b, T> {
     }
 }
 
-impl<'a, 'b, T: ClientType<'a, 'b>> ClientValidationContext for ClientContext<'a, 'b, T> {
+impl<'a, 'b, 'c, T: ClientType> ClientValidationContext for ClientContext<'a, 'b, 'c, T> {
     type ClientStateRef = T::ClientState;
     type ConsensusStateRef = T::ConsensusState;
 
@@ -63,7 +60,7 @@ impl<'a, 'b, T: ClientType<'a, 'b>> ClientValidationContext for ClientContext<'a
     }
 }
 
-impl<'a, 'b, T: ClientType<'a, 'b>> ClientExecutionContext for ClientContext<'a, 'b, T> {
+impl<'a, 'b, 'c, T: ClientType> ClientExecutionContext for ClientContext<'a, 'b, 'c, T> {
     type ClientStateMut = T::ClientState;
 
     fn store_client_state(
@@ -115,7 +112,7 @@ impl<'a, 'b, T: ClientType<'a, 'b>> ClientExecutionContext for ClientContext<'a,
     }
 }
 
-impl<'a, 'b, T: ClientType<'a, 'b>> ExtClientValidationContext for ClientContext<'a, 'b, T> {
+impl<'a, 'b, 'c, T: ClientType> ExtClientValidationContext for ClientContext<'a, 'b, 'c, T> {
     fn host_timestamp(
         &self,
     ) -> Result<ibc::primitives::Timestamp, ibc::core::handler::types::error::ContextError> {
