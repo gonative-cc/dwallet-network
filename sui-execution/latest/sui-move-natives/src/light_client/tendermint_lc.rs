@@ -101,6 +101,8 @@ pub fn tendermint_init_lc(
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
+    println!("{:?} {:?}", ty_args.clone(), args);
+
     let cs = pop_arg!(args, Vec<u8>);
     // TODO: What is ty_args in this case???
 
@@ -121,6 +123,7 @@ pub fn tendermint_init_lc(
     )
     .unwrap();
 
+    
     let mut client_context: ClientContext<TendermintClient> = ClientContext::new(context);
 
     let cs = client_context.convert(cs);

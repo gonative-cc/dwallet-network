@@ -8,21 +8,26 @@ use ibc::core::client::context::{
 use ibc::core::client::context::{ClientValidationContext, ExtClientValidationContext};
 
 use move_vm_runtime::native_functions::NativeContext;
+use sui_types::base_types::ObjectID;
+
+use crate::dynamic_field::hash_type_and_key;
+use crate::object_runtime::ObjectRuntime;
 
 use super::api::ClientType;
 
 
 
 pub struct ClientContext<'a, 'b, 'c, T: ClientType> {
-    object_runtime: &'c mut NativeContext<'a, 'b>,
+    // client_object_id: ObjectID,
+    context: &'c mut NativeContext<'a, 'b>,
     _market: PhantomData<T>,
 }
 
 impl<'a, 'b, 'c, T: ClientType> ClientContext<'a, 'b, 'c, T> {
-    pub fn new(object_runtime: &'c mut NativeContext<'a, 'b>) -> Self {
+    pub fn new(context: &'c mut NativeContext<'a, 'b>) -> Self {
         Self {
             _market: PhantomData,
-            object_runtime,
+            context,
         }
     }
     pub fn convert(&self, cs: Vec<u8>) -> ConsensusState {
