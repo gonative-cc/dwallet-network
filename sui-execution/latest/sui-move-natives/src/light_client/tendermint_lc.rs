@@ -39,40 +39,7 @@ pub fn tendermint_state_proof(
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
-    // TODO: What is ty_args in this case???
-    debug_assert!(ty_args.is_empty());
-    debug_assert!(args.len() == 5);
-
-    let prefix = pop_arg!(args, Vec<u8>);
-    let proof = pop_arg!(args, Vec<u8>);
-    let root = pop_arg!(args, Vec<u8>);
-    let path = pop_arg!(args, Vec<u8>);
-    let value = pop_arg!(args, Vec<u8>);
-
-    let commitment_proof = CommitmentProofBytes::try_from(proof).unwrap();
-    let root = CommitmentRoot::from_bytes(&root);
-    let proof_specs = ProofSpecs::cosmos();
-    let prefix = CommitmentPrefix::try_from(prefix.to_vec()).unwrap();
-
-    let path = Path::Ports(PortPath(PortId::new("10".to_owned()).unwrap()));
-
-    match verify_membership::<HostFunctionsManager>(
-        &proof_specs,
-        &prefix,
-        &commitment_proof,
-        &root,
-        path,
-        value,
-    ) {
-        Ok(()) => Ok(NativeResult::ok(
-            context.gas_used(),
-            smallvec![Value::bool(true)],
-        )),
-        _ => Ok(NativeResult::ok(
-            context.gas_used(),
-            smallvec![Value::bool(false)],
-        )),
-    }
+    todo!()
 }
 
 pub fn tendermint_init_lc(
@@ -80,11 +47,7 @@ pub fn tendermint_init_lc(
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
-    // TODO: What is ty_args in this case???
-    Ok(NativeResult::ok(
-        context.gas_used(),
-        smallvec![Value::bool(true)],
-    ))
+    todo!()
 }
 
 pub fn tendermint_verify_lc(
@@ -92,11 +55,7 @@ pub fn tendermint_verify_lc(
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
-    // TODO: What is ty_args in this case???
-    Ok(NativeResult::ok(
-        context.gas_used(),
-        smallvec![Value::bool(true)],
-    ))
+    todo!()
 }
 
 pub fn tendermint_update_lc(
@@ -104,9 +63,5 @@ pub fn tendermint_update_lc(
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
-    // TODO: What is ty_args in this case???
-    Ok(NativeResult::ok(
-        context.gas_used(),
-        smallvec![Value::bool(true)],
-    ))
+    todo!()
 }
