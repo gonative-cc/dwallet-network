@@ -1,5 +1,5 @@
 use move_binary_format::errors::PartialVMResult;
-use move_core_types::gas_algebra::InternalGas;
+use move_core_types::{account_address::AccountAddress, gas_algebra::InternalGas};
 use move_vm_runtime::{
     native_extensions::NativeContextExtensions, native_functions::NativeContext,
 };
@@ -11,6 +11,7 @@ use move_vm_types::{
 };
 
 use smallvec::smallvec;
+use tracing::instrument;
 use std::{collections::VecDeque, time::Duration};
 
 use ibc::{
@@ -96,6 +97,7 @@ pub fn tendermint_state_proof(
  * create terdermint light client.
  *
  */
+#[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_init_lc(
     context: &mut NativeContext,
     ty_args: Vec<Type>,
@@ -123,13 +125,17 @@ pub fn tendermint_init_lc(
     )
     .unwrap();
 
+    let client_object_id = pop_arg!(args, AccountAddress);
+   
     
-    let mut client_context: ClientContext<TendermintClient> = ClientContext::new(context);
+    let mut client_context: ClientContext<TendermintClient> = ClientContext::new(client_object_id, context);
 
-    let cs = client_context.convert(cs);
+    // let cs = client_context.convert(cs);
 
     let client_id = ClientId::new("stand-alone", 0).unwrap();
-    initialise(&client, &mut client_context, &client_id, cs.into()).unwrap();
+    // initialise(&client, &mut client_context, &client_id, cs.into()).unwrap();
+    let client_key = client_context.client_key(client_id);
+    println!("{}", client_key);
 
     let gas = context.gas_used();
     Ok(NativeResult::ok(gas, smallvec![Value::bool(true)]))

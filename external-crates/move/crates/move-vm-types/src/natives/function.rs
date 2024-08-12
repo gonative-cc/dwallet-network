@@ -112,11 +112,15 @@ macro_rules! pop_arg {
         use $crate::natives::function::{NativeResult, PartialVMError, StatusCode};
         match $arguments.pop_back().map(|v| v.value_as::<$t>()) {
             None => {
+                println!("hello ");
                 return Err(PartialVMError::new(
                     StatusCode::UNKNOWN_INVARIANT_VIOLATION_ERROR,
                 ))
             }
-            Some(Err(e)) => return Err(e),
+            Some(Err(e)) => {
+                println!("hello from 2");
+                return Err(e)
+            },
             Some(Ok(v)) => v,
         }
     }};

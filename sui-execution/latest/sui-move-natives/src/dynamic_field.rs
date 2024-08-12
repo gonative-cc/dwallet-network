@@ -30,6 +30,7 @@ const E_KEY_DOES_NOT_EXIST: u64 = 1;
 const E_FIELD_TYPE_MISMATCH: u64 = 2;
 const E_BCS_SERIALIZATION_FAILURE: u64 = 3;
 
+#[macro_export]
 macro_rules! get_or_fetch_object {
     ($context:ident, $ty_args:ident, $parent:ident, $child_id:ident, $ty_cost_per_byte:expr) => {{
         let child_ty = $ty_args.pop().unwrap();
@@ -84,6 +85,8 @@ pub fn hash_type_and_key(
     mut ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
+    println!("Print args {:?}", args);
+    println!("Print args {:?}", ty_args);
     assert_eq!(ty_args.len(), 1);
     assert_eq!(args.len(), 2);
 
