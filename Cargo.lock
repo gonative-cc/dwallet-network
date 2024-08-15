@@ -13648,6 +13648,7 @@ dependencies = [
  "smallvec",
  "sui-protocol-config",
  "sui-types",
+ "tendermint",
  "tracing",
  "workspace-hack",
 ]
