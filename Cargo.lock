@@ -13649,6 +13649,7 @@ dependencies = [
  "sui-protocol-config",
  "sui-types",
  "tendermint",
+ "tendermint-light-client-verifier",
  "tracing",
  "workspace-hack",
 ]
