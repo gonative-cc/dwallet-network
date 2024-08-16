@@ -131,6 +131,8 @@ pub fn tendermint_update_lc(
 }
 
 // verify tendermint(cometBFT) without implement ExtClientValidationContext.
+// we only verify with the latest consensus state 
+// TODO: make it fit with verify_header in ibc-rs 
 pub fn verify_header_lc<H: MerkleHash + Sha256Trait + Default>(
     chain_id: &ChainId,
     trusted_consensus_state: &ConsensusState,
@@ -139,6 +141,7 @@ pub fn verify_header_lc<H: MerkleHash + Sha256Trait + Default>(
     verifier: impl Verifier,
     timestamp: Time,
 ) -> Result<bool, Box<dyn Error>> {
+    
     header.validate_basic::<H>()?;
 
     // TODO: make it more sense
