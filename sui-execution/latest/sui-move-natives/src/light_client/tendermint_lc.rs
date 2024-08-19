@@ -48,6 +48,7 @@ use tendermint_light_client_verifier::{
     types::{TrustThreshold, TrustedBlockState, UntrustedBlockState},
     ProdVerifier, Verifier,
 };
+use tracing::instrument;
 
 use tendermint::crypto::Sha256 as Sha256Trait;
 #[derive(Clone)]
@@ -58,6 +59,7 @@ pub struct TendermintLightClientCostParams {
     pub tendermint_update_ls_cost_base: InternalGas,
 }
 
+#[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_state_proof(
     context: &mut NativeContext,
     ty_args: Vec<Type>,
@@ -65,7 +67,7 @@ pub fn tendermint_state_proof(
 ) -> PartialVMResult<NativeResult> {
     todo!()
 }
-
+#[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_init_lc(
     context: &mut NativeContext,
     ty_args: Vec<Type>,
@@ -74,20 +76,17 @@ pub fn tendermint_init_lc(
     todo!()
 }
 
+#[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_verify_lc(
     context: &mut NativeContext,
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
-    let header = pop_arg!(args, Vector).to_vec_u8().unwrap();
-    let commitment_root = pop_arg!(args, Vector).to_vec_u8().unwrap();
-    let next_validators_hash = pop_arg!(args, Vector).to_vec_u8().unwrap();
-    let timestamp = pop_arg!(args, Vector).to_vec_u8().unwrap();
+    let header = pop_arg!(args, Vector).to_vec_u8()?;
+    let commitment_root = pop_arg!(args, Vector).to_vec_u8()?;
+    let next_validators_hash = pop_arg!(args, Vector).to_vec_u8()?;
+    let timestamp = pop_arg!(args, Vector).to_vec_u8()?;
 
-    println!("{:?}", header.clone());
-    println!("{:?}", commitment_root.clone());
-    println!("{:?}", next_validators_hash.clone());
-    println!("{:?}", timestamp.clone());
     // covert byte to header
     let type_url = "/ibc.lightclients.tendermint.v1.Header".to_string();
     let any = Any {
@@ -95,20 +94,33 @@ pub fn tendermint_verify_lc(
         value: header,
     };
 
-    let header = TmHeader::try_from(any).unwrap();
-
-    let timestamp = String::from_utf8(timestamp).unwrap();
-
-    let cs = ConsensusState {
-        next_validators_hash: Hash::from_bytes(
-            tendermint::hash::Algorithm::Sha256,
-            &next_validators_hash,
-        )
-        .unwrap(),
-        root: CommitmentRoot::from_bytes(&commitment_root),
-        timestamp: Time::from_str(&timestamp).unwrap(),
+    let Ok(header) = TmHeader::try_from(any) else {
+        return Ok(NativeResult::err(context.gas_used(), 1));
     };
 
+    let Ok(timestamp) = String::from_utf8(timestamp) else {
+        return Ok(NativeResult::err(context.gas_used(), 1));
+    };
+
+    let Ok(next_validators_hash) =
+        Hash::from_bytes(tendermint::hash::Algorithm::Sha256, &next_validators_hash)
+    else {
+        return Ok(NativeResult::err(context.gas_used(), 1));
+    };
+
+    let root = CommitmentRoot::from_bytes(&commitment_root);
+
+    let Ok(timestamp) = Time::from_str(&timestamp) else {
+        return Ok(NativeResult::err(context.gas_used(), 1));
+    };
+
+    let cs = ConsensusState {
+        next_validators_hash,
+        root,
+        timestamp,
+    };
+
+    // move those data to init lc method
     let five_year: u64 = 5 * 365 * 24 * 60 * 60;
     let options = Options {
         clock_drift: Duration::new(40, 0),
@@ -116,15 +128,24 @@ pub fn tendermint_verify_lc(
         trusting_period: Duration::new(five_year, 0),
     };
 
+    // TODO: Move chain_id to init lc method
     let chain_id = ChainId::new("ibc-0").unwrap();
-    let result =
-        verify_header_lc::<Sha256>(&chain_id, &cs, &header, &options, ProdVerifier::default(), Time::from_str(&timestamp).unwrap());
+    let result = verify_header_lc::<Sha256>(
+        &chain_id,
+        &cs,
+        &header,
+        &options,
+        ProdVerifier::default(),
+        timestamp,
+    ).is_ok();
+
     Ok(NativeResult::ok(
         context.gas_used(),
-        smallvec![Value::bool(result.unwrap())],
+        smallvec![Value::bool(result)],
     ))
 }
 
+#[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_update_lc(
     context: &mut NativeContext,
     ty_args: Vec<Type>,
@@ -134,8 +155,8 @@ pub fn tendermint_update_lc(
 }
 
 // verify tendermint(cometBFT) without implement ExtClientValidationContext.
-// we only verify with the latest consensus state 
-// TODO: make it fit with verify_header in ibc-rs 
+// we only verify with the latest consensus state
+// TODO: make it fit with verify_header in ibc-rs
 pub fn verify_header_lc<H: MerkleHash + Sha256Trait + Default>(
     chain_id: &ChainId,
     trusted_consensus_state: &ConsensusState,
@@ -143,12 +164,11 @@ pub fn verify_header_lc<H: MerkleHash + Sha256Trait + Default>(
     options: &Options,
     verifier: impl Verifier,
     timestamp: Time,
-) -> Result<bool, Box<dyn Error>> {
-    
+) -> Result<(), Box<dyn Error>> {
     header.validate_basic::<H>()?;
 
     // TODO: make it more sense
-    // header.verify_chain_id_version_matches_height(chain_id)?;
+    // header.verify_chain_id_version_matcmap_err(op)hes_height(chain_id)?;
     {
         let trusted_state = {
             header.check_trusted_next_validator_set::<H>(
@@ -186,10 +206,10 @@ pub fn verify_header_lc<H: MerkleHash + Sha256Trait + Default>(
             next_validators: None,
         };
 
-        let now =timestamp;
+        let now = timestamp;
         verifier
             .verify_update_header(untrusted_state, trusted_state, options, now)
             .into_result()?;
     }
-    Ok(true)
+    Ok(())
 }
