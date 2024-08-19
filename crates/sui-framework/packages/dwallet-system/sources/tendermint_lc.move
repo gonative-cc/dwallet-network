@@ -1,12 +1,11 @@
-#[allow(unused_function, unused_field)]
+#[allow(unused_function, unused_field, unused_const)]
 module dwallet_system::tendermint_lc {
 
     use dwallet::object::{UID, Self};
     use dwallet::tx_context::TxContext;
-    // use dwallet::transfer;
     use dwallet::dynamic_field as field;
 
-    // const EUpdateFailed: u64 = 0;
+    const EUpdateFailed: u64 = 0;
 
     struct Client has key, store {
         id: UID,
@@ -56,15 +55,14 @@ module dwallet_system::tendermint_lc {
         let cs = consensus_state(height, timestamp, next_validators_hash, commitment_root);
         field::add(&mut client.id, height, cs);
         // public object anyone call call client
-        // transfer::share_object(client);       
-
+        // transfer::share_object(client);
         client
     }
 
     
     public fun verify_lc(client: &Client, header: vector<u8>): bool{
         let latest_height = client.latest_height;
-
+        // TODO: use trusted height from header.  
         let consensus_state: &ConsensusState = field::borrow(&client.id, latest_height);
         let timestamp = consensus_state.timestamp;
         let next_validators_hash = consensus_state.next_validators_hash;
@@ -86,9 +84,7 @@ module dwallet_system::tendermint_lc {
     //     }
     // }
     
-    // native fun extract_consensus_state(header:vector<u8>): ConsensusState {
-
-    // }
+    // native fun extract_consensus_state(header:vector<u8>): ConsensusState;
     native fun tendermint_verify_lc(timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, header: vector<u8>): bool; 
     native fun tendermint_update_lc(): bool;
     native fun tendermint_state_proof(): bool; 

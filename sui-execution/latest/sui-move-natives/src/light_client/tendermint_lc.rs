@@ -79,13 +79,16 @@ pub fn tendermint_verify_lc(
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
-    let timestamp = pop_arg!(args, Vector).to_vec_u8().unwrap();
-    let next_validators_hash = pop_arg!(args, Vector).to_vec_u8().unwrap();
-    let commitment_root = pop_arg!(args, Vector).to_vec_u8().unwrap();
-
-    // covert byte to header
     let header = pop_arg!(args, Vector).to_vec_u8().unwrap();
+    let commitment_root = pop_arg!(args, Vector).to_vec_u8().unwrap();
+    let next_validators_hash = pop_arg!(args, Vector).to_vec_u8().unwrap();
+    let timestamp = pop_arg!(args, Vector).to_vec_u8().unwrap();
 
+    println!("{:?}", header.clone());
+    println!("{:?}", commitment_root.clone());
+    println!("{:?}", next_validators_hash.clone());
+    println!("{:?}", timestamp.clone());
+    // covert byte to header
     let type_url = "/ibc.lightclients.tendermint.v1.Header".to_string();
     let any = Any {
         type_url,
@@ -113,12 +116,12 @@ pub fn tendermint_verify_lc(
         trusting_period: Duration::new(five_year, 0),
     };
 
-    let chain_id = ChainId::new("mychain-3").unwrap();
+    let chain_id = ChainId::new("ibc-0").unwrap();
     let result =
         verify_header_lc::<Sha256>(&chain_id, &cs, &header, &options, ProdVerifier::default(), Time::from_str(&timestamp).unwrap());
     Ok(NativeResult::ok(
         context.gas_used(),
-        smallvec![Value::bool(true)],
+        smallvec![Value::bool(result.unwrap())],
     ))
 }
 
