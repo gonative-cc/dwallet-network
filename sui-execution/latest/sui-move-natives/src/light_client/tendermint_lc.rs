@@ -1,12 +1,14 @@
-use move_binary_format::errors::PartialVMResult;
+use move_binary_format::errors::{PartialVMError, PartialVMResult};
 use move_core_types::gas_algebra::InternalGas;
 use move_vm_runtime::native_functions::NativeContext;
 use move_vm_types::{
     loaded_data::runtime_types::Type,
     natives::function::NativeResult,
     pop_arg,
-    values::{Value, Vector, VectorRef},
+    values::{Struct, Value, Vector, VectorRef},
 };
+
+use prost::Message;
 
 use ibc::{
     apps::transfer::types::proto,
@@ -41,7 +43,7 @@ use std::{
     str::FromStr,
     time::Duration,
 };
-use tendermint::crypto::default::Sha256;
+use tendermint::{crypto::default::Sha256, serializers::timestamp};
 use tendermint::{merkle::MerkleHash, Hash, Time};
 use tendermint_light_client_verifier::{
     options::Options,
@@ -57,6 +59,7 @@ pub struct TendermintLightClientCostParams {
     pub tendermint_init_lc_cost_base: InternalGas,
     pub tendermint_verify_lc_cost_base: InternalGas,
     pub tendermint_update_ls_cost_base: InternalGas,
+    pub tendermint_extract_consensus_state_base: InternalGas
 }
 
 #[instrument(level = "trace", skip_all, err)]
@@ -82,22 +85,22 @@ pub fn tendermint_verify_lc(
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
+    assert!(args.len() == 4);
+    // assert!(ty_args.len() == 0);
     let header = pop_arg!(args, Vector).to_vec_u8()?;
     let commitment_root = pop_arg!(args, Vector).to_vec_u8()?;
     let next_validators_hash = pop_arg!(args, Vector).to_vec_u8()?;
     let timestamp = pop_arg!(args, Vector).to_vec_u8()?;
 
-    // covert byte to header
-    let type_url = "/ibc.lightclients.tendermint.v1.Header".to_string();
-    let any = Any {
-        type_url,
-        value: header,
+    let Ok(any) = Any::decode(&mut header.as_slice()) else {
+        return Ok(NativeResult::err(context.gas_used(), 1));
     };
-
+    
     let Ok(header) = TmHeader::try_from(any) else {
         return Ok(NativeResult::err(context.gas_used(), 1));
     };
 
+    println!("{}", header);
     let Ok(timestamp) = String::from_utf8(timestamp) else {
         return Ok(NativeResult::err(context.gas_used(), 1));
     };
@@ -137,12 +140,38 @@ pub fn tendermint_verify_lc(
         &options,
         ProdVerifier::default(),
         timestamp,
-    ).is_ok();
-
+    )
+    .is_ok();
     Ok(NativeResult::ok(
         context.gas_used(),
         smallvec![Value::bool(result)],
     ))
+}
+
+// TODO: should we move this function into tendermint_verify_lc
+#[instrument(level = "trace", skip_all, err)]
+pub fn extract_consensus_state(
+    context: &mut NativeContext,
+    ty_args: Vec<Type>,
+    mut args: VecDeque<Value>,
+) -> PartialVMResult<NativeResult> {
+    let header = pop_arg!(args, Vector).to_vec_u8()?;
+
+    let Ok(any) = Any::decode(&mut header.as_slice()) else {
+        return Ok(NativeResult::err(context.gas_used(), 1));
+    };
+    
+    let Ok(header) = TmHeader::try_from(any) else {
+        return Ok(NativeResult::err(context.gas_used(), 1));
+    };
+
+    let timestamp = header.timestamp().to_string().to_vec();
+    let next_validators_hash = header.signed_header.header.next_validators_hash.as_bytes().to_vec();
+    let root = header.signed_header.header.app_hash.as_bytes().to_vec();
+
+    let value = vec![Value::vector_u8(timestamp), Value::vector_u8(next_validators_hash), Value::vector_u8(root)];
+    let value = Value::struct_(Struct::pack(value)); 
+    Ok(NativeResult::ok(context.gas_used(), smallvec![value]))
 }
 
 #[instrument(level = "trace", skip_all, err)]
@@ -213,3 +242,4 @@ pub fn verify_header_lc<H: MerkleHash + Sha256Trait + Default>(
     }
     Ok(())
 }
+

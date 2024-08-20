@@ -13645,6 +13645,7 @@ dependencies = [
  "move-stdlib",
  "move-vm-runtime",
  "move-vm-types",
+ "prost 0.12.6",
  "smallvec",
  "sui-protocol-config",
  "sui-types",

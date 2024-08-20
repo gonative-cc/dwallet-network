@@ -29,3 +29,4 @@ tracing.workspace = true
 ibc.workspace = true
 tendermint.workspace = true
 tendermint-light-client-verifier.workspace = true
+prost.workspace = true

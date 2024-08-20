@@ -71,20 +71,20 @@ module dwallet_system::tendermint_lc {
         tendermint_verify_lc(timestamp, next_validators_hash, commitment_root , header)
     }
 
-    // public fun update_lc(client: &mut Client, header: vector<u8>) {
-    //     if (verify_lc(client, header)) {
-    //         let consensus_state = extract_consensus_state(header);
-    //         let height = consensus_state.height;
-    //         if (height.height > client.latest_height.height) {
-    //             client.latest_height = height;
-    //         };
-    //         field::add(&mut client.id, height, consensus_state);
-    //     } else {
-    //         abort EUpdateFailed
-    //     }
-    // }
+    public fun update_lc(client: &mut Client, header: vector<u8>) {
+        if (verify_lc(client, header)) {
+            let consensus_state = extract_consensus_state(header);
+            let height = consensus_state.height;
+            if (height.height > client.latest_height.height) {
+                client.latest_height = height;
+            };
+            field::add(&mut client.id, height, consensus_state);
+        } else {
+            abort EUpdateFailed
+        }
+    }
     
-    // native fun extract_consensus_state(header:vector<u8>): ConsensusState;
+    native fun extract_consensus_state(header:vector<u8>): ConsensusState;
     native fun tendermint_verify_lc(timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, header: vector<u8>): bool; 
     native fun tendermint_update_lc(): bool;
     native fun tendermint_state_proof(): bool; 
