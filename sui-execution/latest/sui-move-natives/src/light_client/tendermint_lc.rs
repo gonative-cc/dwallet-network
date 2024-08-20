@@ -1,49 +1,27 @@
-use move_binary_format::errors::{PartialVMError, PartialVMResult};
+use move_binary_format::errors::PartialVMResult;
 use move_core_types::gas_algebra::InternalGas;
 use move_vm_runtime::native_functions::NativeContext;
 use move_vm_types::{
     loaded_data::runtime_types::Type,
     natives::function::NativeResult,
     pop_arg,
-    values::{Struct, Value, Vector, VectorRef},
+    values::{Struct, Value, Vector},
 };
 
 use prost::Message;
 
 use ibc::{
-    apps::transfer::types::proto,
     clients::tendermint::types::error::{Error as LcError, IntoResult},
-    clients::tendermint::{
-        client_state::{verify_header, verify_membership},
-        types::{proto::v1::Header, ConsensusState, Header as TmHeader},
-    },
+    clients::tendermint::types::{ConsensusState, Header as TmHeader},
     core::{
-        client::types::error::ClientError,
-        commitment_types::{
-            commitment::{CommitmentPrefix, CommitmentProofBytes, CommitmentRoot},
-            proto::ics23::{commitment_proof, CommitmentProof, HostFunctionsManager},
-            specs::ProofSpecs,
-        },
-        host::types::{
-            identifiers::{ChainId, ClientId, PortId},
-            path::{ClientStatePath, CommitmentPath, Path, PortPath},
-        },
+        client::types::error::ClientError, commitment_types::commitment::CommitmentRoot,
+        host::types::identifiers::ChainId,
     },
-    primitives::{
-        proto::{Any, Protobuf},
-        serializers::serialize,
-        Timestamp, ToVec,
-    },
+    primitives::{proto::Any, ToVec},
 };
 use smallvec::smallvec;
-use std::{
-    collections::VecDeque,
-    error::Error,
-    io::{Chain, Read},
-    str::FromStr,
-    time::Duration,
-};
-use tendermint::{crypto::default::Sha256, serializers::timestamp};
+use std::{collections::VecDeque, error::Error, str::FromStr, time::Duration};
+use tendermint::crypto::default::Sha256;
 use tendermint::{merkle::MerkleHash, Hash, Time};
 use tendermint_light_client_verifier::{
     options::Options,
