@@ -57,7 +57,7 @@ use tendermint::crypto::Sha256 as Sha256Trait;
 pub struct TendermintLightClientCostParams {
     pub tendermint_state_proof_cost_base: InternalGas,
     pub tendermint_verify_lc_cost_base: InternalGas,
-    pub tendermint_extract_consensus_state_base: InternalGas
+    pub tendermint_extract_consensus_state_base: InternalGas,
 }
 
 #[instrument(level = "trace", skip_all, err)]
@@ -85,7 +85,7 @@ pub fn tendermint_verify_lc(
     let Ok(any) = Any::decode(&mut header.as_slice()) else {
         return Ok(NativeResult::err(context.gas_used(), 1));
     };
-    
+
     let Ok(header) = TmHeader::try_from(any) else {
         return Ok(NativeResult::err(context.gas_used(), 1));
     };
@@ -149,21 +149,30 @@ pub fn extract_consensus_state(
     let Ok(any) = Any::decode(&mut header.as_slice()) else {
         return Ok(NativeResult::err(context.gas_used(), 1));
     };
-    
+
     let Ok(header) = TmHeader::try_from(any) else {
         return Ok(NativeResult::err(context.gas_used(), 1));
     };
 
     let timestamp = header.timestamp().to_string().to_vec();
-    let next_validators_hash = header.signed_header.header.next_validators_hash.as_bytes().to_vec();
+    let next_validators_hash = header
+        .signed_header
+        .header
+        .next_validators_hash
+        .as_bytes()
+        .to_vec();
     let root = header.signed_header.header.app_hash.as_bytes().to_vec();
     let height = header.height().revision_height();
 
-    let value = vec![Value::u64(height), Value::vector_u8(timestamp), Value::vector_u8(next_validators_hash), Value::vector_u8(root)];
-    let value = Value::struct_(Struct::pack(value)); 
+    let value = vec![
+        Value::u64(height),
+        Value::vector_u8(timestamp),
+        Value::vector_u8(next_validators_hash),
+        Value::vector_u8(root),
+    ];
+    let value = Value::struct_(Struct::pack(value));
     Ok(NativeResult::ok(context.gas_used(), smallvec![value]))
 }
-
 
 // verify tendermint(cometBFT) without implement ExtClientValidationContext.
 // we only verify with the latest consensus state
@@ -224,4 +233,3 @@ pub fn verify_header_lc<H: MerkleHash + Sha256Trait + Default>(
     }
     Ok(())
 }
-

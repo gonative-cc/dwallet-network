@@ -771,9 +771,9 @@ pub fn all_natives(silent: bool) -> NativeFunctionTable {
         ),
         (
             "tendermint_lc",
-            "extract_consensus_state", 
-            make_native!(light_client::tendermint_lc::extract_consensus_state)
-        )
+            "extract_consensus_state",
+            make_native!(light_client::tendermint_lc::extract_consensus_state),
+        ),
     ];
     sui_system_natives
         .iter()

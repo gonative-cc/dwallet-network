@@ -878,7 +878,7 @@ pub struct ProtocolConfig {
     /// === Tendermint light client ===
     tendermint_state_proof_cost_base: Option<u64>,
     tendermint_verify_lc_cost_base: Option<u64>,
-    tendermint_extract_consensus_state_base: Option<u64>
+    tendermint_extract_consensus_state_base: Option<u64>,
 }
 
 // feature flags
