@@ -56,22 +56,12 @@ use tendermint::crypto::Sha256 as Sha256Trait;
 #[derive(Clone)]
 pub struct TendermintLightClientCostParams {
     pub tendermint_state_proof_cost_base: InternalGas,
-    pub tendermint_init_lc_cost_base: InternalGas,
     pub tendermint_verify_lc_cost_base: InternalGas,
-    pub tendermint_update_ls_cost_base: InternalGas,
     pub tendermint_extract_consensus_state_base: InternalGas
 }
 
 #[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_state_proof(
-    context: &mut NativeContext,
-    ty_args: Vec<Type>,
-    mut args: VecDeque<Value>,
-) -> PartialVMResult<NativeResult> {
-    todo!()
-}
-#[instrument(level = "trace", skip_all, err)]
-pub fn tendermint_init_lc(
     context: &mut NativeContext,
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
@@ -100,7 +90,6 @@ pub fn tendermint_verify_lc(
         return Ok(NativeResult::err(context.gas_used(), 1));
     };
 
-    println!("{}", header);
     let Ok(timestamp) = String::from_utf8(timestamp) else {
         return Ok(NativeResult::err(context.gas_used(), 1));
     };
@@ -168,20 +157,13 @@ pub fn extract_consensus_state(
     let timestamp = header.timestamp().to_string().to_vec();
     let next_validators_hash = header.signed_header.header.next_validators_hash.as_bytes().to_vec();
     let root = header.signed_header.header.app_hash.as_bytes().to_vec();
+    let height = header.height().revision_height();
 
-    let value = vec![Value::vector_u8(timestamp), Value::vector_u8(next_validators_hash), Value::vector_u8(root)];
+    let value = vec![Value::u64(height), Value::vector_u8(timestamp), Value::vector_u8(next_validators_hash), Value::vector_u8(root)];
     let value = Value::struct_(Struct::pack(value)); 
     Ok(NativeResult::ok(context.gas_used(), smallvec![value]))
 }
 
-#[instrument(level = "trace", skip_all, err)]
-pub fn tendermint_update_lc(
-    context: &mut NativeContext,
-    ty_args: Vec<Type>,
-    mut args: VecDeque<Value>,
-) -> PartialVMResult<NativeResult> {
-    todo!()
-}
 
 // verify tendermint(cometBFT) without implement ExtClientValidationContext.
 // we only verify with the latest consensus state

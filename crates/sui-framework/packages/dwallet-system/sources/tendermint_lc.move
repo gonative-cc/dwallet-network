@@ -9,30 +9,39 @@ module dwallet_system::tendermint_lc {
 
     struct Client has key, store {
         id: UID,
-        latest_height: Height
+        latest_height: u64
     }
 
-    struct Height has store, copy, drop{
-        height: u64, 
-        revision_height: u64
-    }
+    // struct Height has store, copy, drop{
+    //     height: u64, 
+    //     revision_height: u64
+    // }
 
     struct ConsensusState has store, copy, drop {
-        height: Height,
+        height: u64,
         timestamp: vector<u8>, 
         next_validators_hash: vector<u8>,
         commitment_root: vector<u8>
     }
 
 
-    public fun create_height(height: u64, revision_height: u64):Height {
-        Height {
-            height, 
-            revision_height
-        }
-    } 
+    public fun height(cs: &ConsensusState) : u64 {
+        cs.height
+    }
+    
+    public fun timestamp(cs: &ConsensusState) : vector<u8> {
+        cs.timestamp
+    }
 
-    public fun consensus_state(height: Height, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>): ConsensusState {
+    public fun next_validators_hash(cs: &ConsensusState) : vector<u8> {
+        cs.next_validators_hash
+    }
+
+    public fun commitment_root(cs: &ConsensusState) : vector<u8>{
+        cs.commitment_root
+    }
+    
+    public fun consensus_state(height: u64, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>): ConsensusState {
        let consensus_state =  ConsensusState {
             timestamp, 
             next_validators_hash, 
@@ -42,11 +51,11 @@ module dwallet_system::tendermint_lc {
         consensus_state
     }
 
-    public fun latest_height(client: &Client) : Height {
+    public fun latest_height(client: &Client) : u64 {
         client.latest_height
     }
 
-    public fun init_lc(height: Height, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, ctx: &mut TxContext): Client {
+    public fun init_lc(height: u64, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, ctx: &mut TxContext): Client {
         let client = Client {
             id: object::new(ctx),
             latest_height: height
@@ -75,7 +84,7 @@ module dwallet_system::tendermint_lc {
         if (verify_lc(client, header)) {
             let consensus_state = extract_consensus_state(header);
             let height = consensus_state.height;
-            if (height.height > client.latest_height.height) {
+            if (height > client.latest_height) {
                 client.latest_height = height;
             };
             field::add(&mut client.id, height, consensus_state);
@@ -84,8 +93,7 @@ module dwallet_system::tendermint_lc {
         }
     }
     
-    native fun extract_consensus_state(header:vector<u8>): ConsensusState;
+    public native fun extract_consensus_state(header:vector<u8>): ConsensusState;
     native fun tendermint_verify_lc(timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, header: vector<u8>): bool; 
-    native fun tendermint_update_lc(): bool;
     native fun tendermint_state_proof(): bool; 
 }
