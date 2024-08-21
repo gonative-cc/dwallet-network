@@ -36,11 +36,11 @@ pub fn tendermint_state_proof(
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
-    let proof = pop_arg!(args, Vector).to_vec_u8()?;
+    let value = pop_arg!(args, Vector).to_vec_u8()?;
     let path = pop_arg!(args, Vector).to_vec_u8()?;
     let prefix = pop_arg!(args, Vector).to_vec_u8()?;
     let root = pop_arg!(args, Vector).to_vec_u8()?;
-    let value = pop_arg!(args, Vector).to_vec_u8()?;
+    let proof = pop_arg!(args, Vector).to_vec_u8()?;
 
     let Ok(prefix) = CommitmentPrefix::try_from(prefix) else {
         return Ok(NativeResult::err(context.gas_used(), 1));
