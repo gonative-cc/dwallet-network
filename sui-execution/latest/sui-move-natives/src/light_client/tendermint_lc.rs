@@ -11,15 +11,16 @@ use move_vm_types::{
 use smallvec::smallvec;
 use std::{collections::VecDeque, str::from_utf8};
 
-use ibc::{
-    core::{
-        commitment_types::{
-            commitment::{CommitmentPrefix, CommitmentProofBytes, CommitmentRoot}, merkle::{apply_prefix, MerkleProof}, proto::ics23::{commitment_proof, CommitmentProof, HostFunctionsManager}, specs::ProofSpecs
-        },
-        host::types::{
-            identifiers::{ClientId, PortId},
-            path::{ClientStatePath, CommitmentPath, Path, PortPath},
-        },
+use ibc::core::{
+    commitment_types::{
+        commitment::{CommitmentPrefix, CommitmentProofBytes, CommitmentRoot},
+        merkle::{apply_prefix, MerkleProof},
+        proto::ics23::{commitment_proof, CommitmentProof, HostFunctionsManager},
+        specs::ProofSpecs,
+    },
+    host::types::{
+        identifiers::{ClientId, PortId},
+        path::{ClientStatePath, CommitmentPath, Path, PortPath},
     },
 };
 
@@ -51,21 +52,31 @@ pub fn tendermint_state_proof(
     };
 
     let merkle_path = apply_prefix(&prefix, vec![path_str.to_owned()]);
-    
+
     let Ok(proof_bytes) = CommitmentProofBytes::try_from(proof) else {
-        return Ok(NativeResult::err(context.gas_used(), 1)); 
+        return Ok(NativeResult::err(context.gas_used(), 1));
     };
-    
+
     let Ok(merkle_proof) = MerkleProof::try_from(&proof_bytes) else {
-        return Ok(NativeResult::err(context.gas_used(), 1)); 
+        return Ok(NativeResult::err(context.gas_used(), 1));
     };
 
     let root = CommitmentRoot::from_bytes(&root);
-    
-    let verified = merkle_proof.verify_membership::<HostFunctionsManager>(&ProofSpecs::cosmos(), root.into(), merkle_path, value, 0).is_ok();
 
-    Ok(NativeResult::ok(context.gas_used(), smallvec![Value::bool(verified)]))
+    let verified = merkle_proof
+        .verify_membership::<HostFunctionsManager>(
+            &ProofSpecs::cosmos(),
+            root.into(),
+            merkle_path,
+            value,
+            0,
+        )
+        .is_ok();
 
+    Ok(NativeResult::ok(
+        context.gas_used(),
+        smallvec![Value::bool(verified)],
+    ))
 }
 
 pub fn tendermint_init_lc(
