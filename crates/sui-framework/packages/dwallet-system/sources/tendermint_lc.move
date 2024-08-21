@@ -24,19 +24,22 @@ module dwallet_system::tendermint_lc {
         commitment_root: vector<u8>
     }
 
-
+    #[test_only]
     public fun height(cs: &ConsensusState) : u64 {
         cs.height
     }
     
+    #[test_only]
     public fun timestamp(cs: &ConsensusState) : vector<u8> {
         cs.timestamp
     }
 
+    #[test_only]
     public fun next_validators_hash(cs: &ConsensusState) : vector<u8> {
         cs.next_validators_hash
     }
 
+    #[test_only]
     public fun commitment_root(cs: &ConsensusState) : vector<u8>{
         cs.commitment_root
     }

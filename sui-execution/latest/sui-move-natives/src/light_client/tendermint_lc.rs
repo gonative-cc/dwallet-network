@@ -47,6 +47,7 @@ pub fn tendermint_state_proof(
     todo!()
 }
 
+// TODO: remove trace and add document for this funciton.
 #[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_verify_lc(
     context: &mut NativeContext,
@@ -116,6 +117,7 @@ pub fn tendermint_verify_lc(
 }
 
 // TODO: should we move this function into tendermint_verify_lc
+// TODO: remove trace and add document for this function.
 #[instrument(level = "trace", skip_all, err)]
 pub fn extract_consensus_state(
     context: &mut NativeContext,
