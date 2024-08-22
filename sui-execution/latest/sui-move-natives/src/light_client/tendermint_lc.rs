@@ -40,7 +40,6 @@ pub struct TendermintLightClientCostParams {
 
 const INVALID_INPUT: u64 = 0;
 
-
 #[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_state_proof(
     context: &mut NativeContext,
@@ -59,7 +58,7 @@ pub fn tendermint_verify_lc(
 ) -> PartialVMResult<NativeResult> {
     assert!(args.len() == 4);
     assert!(ty_args.len() == 0);
-    
+
     let header = pop_arg!(args, Vector).to_vec_u8()?;
     let commitment_root = pop_arg!(args, Vector).to_vec_u8()?;
     let next_validators_hash = pop_arg!(args, Vector).to_vec_u8()?;
@@ -149,16 +148,31 @@ pub fn extract_consensus_state(
     let root = header.signed_header.header.app_hash.as_bytes().to_vec();
     let height = header.height().revision_height();
 
+    Ok(NativeResult::ok(
+        context.gas_used(),
+        smallvec![pack_consensus_state(
+            height,
+            timestamp,
+            next_validators_hash,
+            root
+        )],
+    ))
+}
+
+pub fn pack_consensus_state(
+    height: u64,
+    timestamp: Vec<u8>,
+    next_validators_hash: Vec<u8>,
+    root: Vec<u8>,
+) -> Value {
     let value = vec![
         Value::u64(height),
         Value::vector_u8(timestamp),
         Value::vector_u8(next_validators_hash),
         Value::vector_u8(root),
     ];
-    let value = Value::struct_(Struct::pack(value));
-    Ok(NativeResult::ok(context.gas_used(), smallvec![value]))
+    Value::struct_(Struct::pack(value))
 }
-
 // verify tendermint(cometBFT) without implement ExtClientValidationContext.
 // we only verify with the latest consensus state
 // TODO: make it fit with verify_header in ibc-rs
