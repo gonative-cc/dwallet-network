@@ -38,6 +38,9 @@ pub struct TendermintLightClientCostParams {
     pub tendermint_extract_consensus_state_base: InternalGas,
 }
 
+const INVALID_INPUT: u64 = 0;
+
+
 #[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_state_proof(
     context: &mut NativeContext,
@@ -55,34 +58,35 @@ pub fn tendermint_verify_lc(
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
     assert!(args.len() == 4);
-    // assert!(ty_args.len() == 0);
+    assert!(ty_args.len() == 0);
+    
     let header = pop_arg!(args, Vector).to_vec_u8()?;
     let commitment_root = pop_arg!(args, Vector).to_vec_u8()?;
     let next_validators_hash = pop_arg!(args, Vector).to_vec_u8()?;
     let timestamp = pop_arg!(args, Vector).to_vec_u8()?;
 
     let Ok(any) = Any::decode(&mut header.as_slice()) else {
-        return Ok(NativeResult::err(context.gas_used(), 1));
+        return Ok(NativeResult::err(context.gas_used(), INVALID_INPUT));
     };
 
     let Ok(header) = TmHeader::try_from(any) else {
-        return Ok(NativeResult::err(context.gas_used(), 1));
+        return Ok(NativeResult::err(context.gas_used(), INVALID_INPUT));
     };
 
     let Ok(timestamp) = String::from_utf8(timestamp) else {
-        return Ok(NativeResult::err(context.gas_used(), 1));
+        return Ok(NativeResult::err(context.gas_used(), INVALID_INPUT));
     };
 
     let Ok(next_validators_hash) =
         Hash::from_bytes(tendermint::hash::Algorithm::Sha256, &next_validators_hash)
     else {
-        return Ok(NativeResult::err(context.gas_used(), 1));
+        return Ok(NativeResult::err(context.gas_used(), INVALID_INPUT));
     };
 
     let root = CommitmentRoot::from_bytes(&commitment_root);
 
     let Ok(timestamp) = Time::from_str(&timestamp) else {
-        return Ok(NativeResult::err(context.gas_used(), 1));
+        return Ok(NativeResult::err(context.gas_used(), INVALID_INPUT));
     };
 
     let cs = ConsensusState {
@@ -124,14 +128,15 @@ pub fn extract_consensus_state(
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
+    assert!(args.len() == 1);
     let header = pop_arg!(args, Vector).to_vec_u8()?;
 
     let Ok(any) = Any::decode(&mut header.as_slice()) else {
-        return Ok(NativeResult::err(context.gas_used(), 1));
+        return Ok(NativeResult::err(context.gas_used(), INVALID_INPUT));
     };
 
     let Ok(header) = TmHeader::try_from(any) else {
-        return Ok(NativeResult::err(context.gas_used(), 1));
+        return Ok(NativeResult::err(context.gas_used(), INVALID_INPUT));
     };
 
     let timestamp = header.timestamp().to_string().to_vec();
