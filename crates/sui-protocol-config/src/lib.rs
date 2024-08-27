@@ -877,9 +877,8 @@ pub struct ProtocolConfig {
 
     /// === Tendermint light client ===
     tendermint_state_proof_cost_base: Option<u64>,
-    tendermint_init_lc_cost_base: Option<u64>,
     tendermint_verify_lc_cost_base: Option<u64>,
-    tendermint_update_lc_cost_base: Option<u64>,
+    tendermint_extract_consensus_state_base: Option<u64>,
 }
 
 // feature flags
@@ -1202,7 +1201,9 @@ impl ProtocolConfig {
             // All flags are disabled in V1
             feature_flags: Default::default(),
 
-            max_tx_size_bytes: Some(128 * 1024),
+            // `max_tx_size_bytes` and `max_pure_argument_size` increased to 1024 * 1024
+            // to be able to support Ethereum light client proofs.
+            max_tx_size_bytes: Some(1024 * 1024),
             // We need this number to be at least 100x less than `max_serialized_tx_effects_size_bytes`otherwise effects can be huge
             max_input_objects: Some(2048),
             max_serialized_tx_effects_size_bytes: Some(512 * 1024),
@@ -1212,7 +1213,7 @@ impl ProtocolConfig {
             max_arguments: Some(512),
             max_type_arguments: Some(16),
             max_type_argument_depth: Some(16),
-            max_pure_argument_size: Some(16 * 1024),
+            max_pure_argument_size: Some(1024 * 1024),
             max_programmable_tx_commands: Some(1024),
             move_binary_format_version: Some(6),
             max_move_object_size: Some(250 * 1024),
@@ -1477,9 +1478,8 @@ impl ProtocolConfig {
             // tendermint light client
             // TODO: please check the cost base  
             tendermint_state_proof_cost_base: Some(42),
-            tendermint_init_lc_cost_base: Some(42),
-            tendermint_update_lc_cost_base: Some(42),
-            tendermint_verify_lc_cost_base: Some(42)
+            tendermint_verify_lc_cost_base: Some(42),
+            tendermint_extract_consensus_state_base: Some(42)
         };
         for cur in 2..=version.0 {
             match cur {

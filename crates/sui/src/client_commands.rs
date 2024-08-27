@@ -68,9 +68,13 @@ use tabled::{
 };
 use tracing::info;
 
-use crate::ethereum_client::EthClientCommands;
+use crate::ethereum_client_commands::{
+    create_eth_dwallet, eth_approve_message, init_ethereum_state, EthClientCommands,
+};
 use crate::key_identity::{get_identity_address, KeyIdentity};
+use crate::sui_commands::SuiCommand;
 
+#[macro_export]
 macro_rules! serialize_or_execute {
     ($tx_data:expr, $serialize_unsigned:expr, $serialize_signed:expr, $context:expr, $result_variant:ident) => {{
         assert!(
@@ -1386,14 +1390,66 @@ impl SuiClientCommands {
                 SuiClientCommandResult::VerifySource
             }
             SuiClientCommands::EthClient { command } => match command {
-                EthClientCommands::EthApproveMessage { .. } => {
-                    todo!()
+                EthClientCommands::EthApproveMessage {
+                    eth_dwallet_cap_id,
+                    message,
+                    dwallet_id,
+                    gas,
+                    gas_budget,
+                    serialize_unsigned_transaction,
+                    serialize_signed_transaction,
+                } => {
+                    eth_approve_message(
+                        context,
+                        eth_dwallet_cap_id,
+                        message,
+                        dwallet_id,
+                        gas,
+                        gas_budget,
+                        serialize_unsigned_transaction,
+                        serialize_signed_transaction,
+                    )
+                    .await?
                 }
-                EthClientCommands::CreateEthDwallet { .. } => {
-                    todo!()
+                EthClientCommands::CreateEthDwallet {
+                    dwallet_cap_id,
+                    gas,
+                    gas_budget,
+                    serialize_unsigned_transaction,
+                    serialize_signed_transaction,
+                } => {
+                    create_eth_dwallet(
+                        context,
+                        dwallet_cap_id,
+                        gas,
+                        gas_budget,
+                        serialize_unsigned_transaction,
+                        serialize_signed_transaction,
+                    )
+                    .await?
                 }
-                EthClientCommands::InitEthState { .. } => {
-                    todo!()
+                EthClientCommands::InitEthState {
+                    checkpoint,
+                    network,
+                    contract_address,
+                    contract_approved_tx_slot,
+                    gas,
+                    gas_budget,
+                    serialize_unsigned_transaction,
+                    serialize_signed_transaction,
+                } => {
+                    init_ethereum_state(
+                        checkpoint,
+                        network,
+                        contract_address,
+                        contract_approved_tx_slot,
+                        context,
+                        gas,
+                        gas_budget,
+                        serialize_unsigned_transaction,
+                        serialize_signed_transaction,
+                    )
+                    .await?
                 }
             },
         });
@@ -1727,7 +1783,7 @@ impl Display for SuiClientCommandResult {
                 write!(writer, "{}", env.as_deref().unwrap_or("None"))?;
             }
             SuiClientCommandResult::NewEnv(env) => {
-                writeln!(writer, "Added new Sui env [{}] to config.", env.alias)?;
+                writeln!(writer, "Added new dWallet env [{}] to config.", env.alias)?;
             }
             SuiClientCommandResult::Envs(envs, active) => {
                 let mut builder = TableBuilder::default();
@@ -1786,7 +1842,7 @@ impl Display for SuiClientCommandResult {
     }
 }
 
-async fn construct_move_call_transaction(
+pub(crate) async fn construct_move_call_transaction(
     package: ObjectID,
     module: &str,
     function: &str,
