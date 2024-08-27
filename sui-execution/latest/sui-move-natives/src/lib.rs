@@ -37,6 +37,7 @@ use crate::crypto::twopc_mpc::{TransferDWalletCostParams, TwoPCMPCDKGCostParams}
 use crate::crypto::zklogin::{CheckZkloginIdCostParams, CheckZkloginIssuerCostParams};
 use crate::crypto::{twopc_mpc, zklogin};
 use better_any::{Tid, TidAble};
+use light_client::tendermint_lc::TendermintLightClientCostParams;
 use move_binary_format::errors::{PartialVMError, PartialVMResult};
 use move_core_types::{
     annotated_value as A,
@@ -70,6 +71,7 @@ mod transfer;
 mod tx_context;
 mod types;
 mod validator;
+mod light_client;
 
 #[derive(Tid)]
 pub struct NativesCostTable {
@@ -153,6 +155,8 @@ pub struct NativesCostTable {
 
     // twopc mpc
     pub twopc_mpc_dkg_cost_params: TwoPCMPCDKGCostParams,
+
+    pub tendermint_light_client_cost_params: TendermintLightClientCostParams,
 }
 
 impl NativesCostTable {
@@ -516,6 +520,11 @@ impl NativesCostTable {
             transfer_dwallet_cost_params: TransferDWalletCostParams {
                 transfer_dwallet_gas: protocol_config.transfer_dwallet_cost_base().into(),
             },
+            tendermint_light_client_cost_params: TendermintLightClientCostParams {
+                tendermint_extract_consensus_state_base: protocol_config.tendermint_extract_consensus_state_base().into(),
+                tendermint_state_proof_cost_base: protocol_config.tendermint_state_proof_cost_base().into(),
+                tendermint_verify_lc_cost_base: protocol_config.tendermint_verify_lc_cost_base().into()
+            }
         }
     }
 }
@@ -769,6 +778,16 @@ pub fn all_natives(silent: bool) -> NativeFunctionTable {
             "dwallet_2pc_mpc_ecdsa_k1",
             "convert_signature_to_canonical_form",
             make_native!(twopc_mpc::convert_signature_to_canonical_form),
+        ),
+        (
+            "tendermint_lc",
+            "extract_consensus_state",
+            make_native!(light_client::tendermint_lc::extract_consensus_state),
+        ),
+        (
+            "tendermint_lc",
+            "tendermint_verify_lc",
+            make_native!(light_client::tendermint_lc::tendermint_verify_lc),
         ),
     ];
     sui_system_natives

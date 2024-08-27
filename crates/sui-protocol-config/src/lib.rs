@@ -884,6 +884,11 @@ pub struct ProtocolConfig {
     /// Maximum allowed precision loss when reducing voting weights for the random beacon
     /// protocol.
     random_beacon_reduction_allowed_delta: Option<u16>,
+
+    /// === tendermint light client ===
+    tendermint_state_proof_cost_base: Option<u64>,
+    tendermint_verify_lc_cost_base: Option<u64>,
+    tendermint_extract_consensus_state_base: Option<u64>,
 }
 
 // feature flags
@@ -1461,6 +1466,12 @@ impl ProtocolConfig {
             sign_verify_encrypted_signature_parts_prehash_cost_base: Some(52),
             transfer_dwallet_cost_base: Some(52),
 
+            // tendermint light client 
+            // TODO: Setup right cost for those api
+            tendermint_extract_consensus_state_base: Some(42),
+            tendermint_state_proof_cost_base: Some(42),
+            tendermint_verify_lc_cost_base: Some(42),
+            
             max_size_written_objects: None,
             max_size_written_objects_system_tx: None,
 
