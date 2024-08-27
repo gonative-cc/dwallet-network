@@ -40,16 +40,8 @@ pub struct TendermintLightClientCostParams {
 
 const INVALID_INPUT: u64 = 0;
 
-#[instrument(level = "trace", skip_all, err)]
-pub fn tendermint_state_proof(
-    context: &mut NativeContext,
-    ty_args: Vec<Type>,
-    mut args: VecDeque<Value>,
-) -> PartialVMResult<NativeResult> {
-    todo!()
-}
-
 // TODO: remove trace and add document for this funciton.
+// TODO: return error match with ibc veify light client error
 #[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_verify_lc(
     context: &mut NativeContext,

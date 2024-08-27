@@ -12,6 +12,7 @@ module dwallet_system::tendermint_lc {
         latest_height: u64
     }
 
+    // TODO: Build height object match with ibc spec
     // struct Height has store, copy, drop{
     //     height: u64, 
     //     revision_height: u64
