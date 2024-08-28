@@ -812,7 +812,7 @@ pub fn all_natives(silent: bool) -> NativeFunctionTable {
         (
             "tendermint_lc",
             "extract_consensus_state",
-            make_native!(light_client::tendermint_lc::extract_consensus_state)
+            make_native!(light_client::tendermint_lc::extract_consensus_state),
         ),
         (
             "ethereum_state",
