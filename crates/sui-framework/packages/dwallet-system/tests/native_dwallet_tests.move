@@ -1,18 +1,20 @@
 #[test_only]
 #[allow(unused_function, unused_field, unused_use)]
-module dwallet_system::native_state_proof_test {
+module dwallet_system::native_dwallet_tests {
 
     use dwallet_system::tendermint_lc::{Self, Client, init_lc};
     use dwallet::test_scenario;
 
     // TODO: rename native_api;
-    use dwallet_system::native_api::{link_dwallet};
+    use dwallet_system::native_dwallet::{link_dwallet};
     use dwallet_system::dwallet::{create_dwallet_cap, DWalletCap};
 
     use dwallet::test_utils;
     const SENDER: address = @0x010;
 
     fun setup(): (vector<u8>, vector<u8>, vector<u8>, vector<u8>, Client, test_scenario::Scenario) {
+	// data from this tx https://www.mintscan.io/cosmos/tx/A0E69441FB46C5797C1193D6EAA7EB5A59A809F0433ECA6CE29D7CD3DEFED679?height=21413592&sector=json
+	// TODO: Should we make function to return those values b/c we also use it in lc:state proof
         let scenario = test_scenario::begin(SENDER);
         let root = vector[64, 219, 231, 75, 96, 63, 254, 86, 135, 18, 53, 189, 169, 80, 121, 135, 38, 184, 204, 224, 178, 186, 3, 136, 93, 78, 47, 139, 75, 231, 7, 12];
         let prefix = vector[105, 98, 99];

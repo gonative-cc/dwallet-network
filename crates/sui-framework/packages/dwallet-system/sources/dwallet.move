@@ -21,7 +21,7 @@ module dwallet_system::dwallet {
     friend dwallet_system::dwallet_ecdsa_k1_tests;
 
     #[test_only]
-    friend dwallet_system::native_state_proof_test;
+    friend dwallet_system::native_dwallet_tests;
 
     // <<<<<<<<<<<<<<<<<<<<<<<< Error codes <<<<<<<<<<<<<<<<<<<<<<<<
     const ENotSystemAddress: u64 = 0;

@@ -1,6 +1,6 @@
 // module support api for link and trigger future transaction
 #[allow(unused_function, unused_field, unused_variable, unused_use)]
-module dwallet_system::native_api {
+module dwallet_system::native_dwallet {
     use std::vector;
     use dwallet::object::{UID, Self, ID};
     use dwallet::tx_context::TxContext;
@@ -13,9 +13,10 @@ module dwallet_system::native_api {
     const EHeightInvalid: u64 = 0;
     const EStateInvalid: u64 = 1;
 
-    // TODO: How own this object?
 
-    struct NativeDwalletCap has key, store{
+    // Wapper object wrap DWalletCap. DWalletCap owner (user) will transfer ownership to NativeDwallet Cap
+    // 
+    struct NativeDwalletCap has key, store {
         id: UID,
         client_id: ID,
         dwallet_cap: DWalletCap
@@ -33,6 +34,7 @@ module dwallet_system::native_api {
     }
 
 
+  
     public fun link_dwallet(client: &Client, dwallet_cap: DWalletCap,  height: u64,  proof: vector<u8>, prefix: vector<u8>, path: vector<u8>, value: vector<u8>, ctx: &mut TxContext): NativeDwalletCap {
         // prefix and path should be a const
         let lh = latest_height(client);
@@ -42,5 +44,6 @@ module dwallet_system::native_api {
         return create_native_dwallet_cap(client, dwallet_cap, ctx)
     }
 
+    // TODO: inteface, shoud finish in the next PR
     public fun verify_transaction(dwallet_cap: &DWalletCap, client: &Client, height: u64, state_proof:vector<u8>){}
 }
