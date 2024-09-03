@@ -14,27 +14,25 @@ module dwallet_system::native_dwallet {
     const EStateInvalid: u64 = 1;
 
 
-    // Wapper object wrap DWalletCap. DWalletCap owner (user) will transfer ownership to NativeDwallet Cap
-    // 
+    // Wrapper object wrap DWalletCap. DWalletCap owner (user) will transfer ownership to NativeDwallet Cap
     struct NativeDwalletCap has key, store {
         id: UID,
+	// ID of client object. We use it to ensure NativeDwalletCap query
+	// right client when verify future transaction.
         client_id: ID,
         dwallet_cap: DWalletCap
     }
 
+    // Create Native Dwallet wrap dwallet and Native light client
     fun create_native_dwallet_cap(client: &Client, dwallet_cap: DWalletCap, ctx: &mut TxContext): NativeDwalletCap {
         let native_dwallet_cap = NativeDwalletCap {
             id: object::new(ctx),
             dwallet_cap,
             client_id: client_id(client)
         };
-
-        // Question: Should we transfer dwallet_cap to create native dwallet
         native_dwallet_cap
     }
 
-
-  
     public fun link_dwallet(client: &Client, dwallet_cap: DWalletCap,  height: u64,  proof: vector<u8>, prefix: vector<u8>, path: vector<u8>, value: vector<u8>, ctx: &mut TxContext): NativeDwalletCap {
         // prefix and path should be a const
         let lh = latest_height(client);
