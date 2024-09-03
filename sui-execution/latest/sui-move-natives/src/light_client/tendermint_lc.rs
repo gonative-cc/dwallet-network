@@ -205,10 +205,9 @@ pub fn tendermint_verify_lc(
                 smallvec![Value::bool(result)],
             ))
         }
-        Err(err) => Ok(NativeResult::err(context.gas_used(), err as u64))
+        Err(err) => Ok(NativeResult::err(context.gas_used(), err as u64)),
     }
 }
-
 
 // TODO: should we move this function into tendermint_verify_lc
 // TODO: remove trace and add document for this function.
@@ -222,11 +221,17 @@ pub fn extract_consensus_state(
     let header = pop_arg!(args, Vector).to_vec_u8()?;
 
     let Ok(any) = Any::decode(&mut header.as_slice()) else {
-        return Ok(NativeResult::err(context.gas_used(), NativeError::HeaderInvalid as u64));
+        return Ok(NativeResult::err(
+            context.gas_used(),
+            NativeError::HeaderInvalid as u64,
+        ));
     };
 
     let Ok(header) = TmHeader::try_from(any) else {
-        return Ok(NativeResult::err(context.gas_used(), NativeError::HeaderInvalid as u64));
+        return Ok(NativeResult::err(
+            context.gas_used(),
+            NativeError::HeaderInvalid as u64,
+        ));
     };
 
     let timestamp = header.timestamp().to_string().to_vec();
