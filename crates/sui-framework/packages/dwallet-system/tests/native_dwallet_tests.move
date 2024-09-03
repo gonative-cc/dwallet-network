@@ -46,4 +46,8 @@ module dwallet_system::native_dwallet_tests {
         test_utils::destroy(client);
         test_scenario::end(scenario);
     }
+
+    #[test]
+    fun verify_native_transaction() {
+    }
 }
