@@ -1114,7 +1114,9 @@ impl ProtocolConfig {
     }
 
     pub fn signature_mpc_tiresias_public_parameters(&self) -> Option<&str> {
-        self.feature_flags.signature_mpc_tiresias_public_parameters.as_deref()
+        self.feature_flags
+            .signature_mpc_tiresias_public_parameters
+            .as_deref()
     }
 }
 
