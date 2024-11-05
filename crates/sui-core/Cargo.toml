@@ -85,7 +85,6 @@ sui-simulator.workspace = true
 sui-storage.workspace = true
 sui-types.workspace = true
 
-signature-mpc.workspace = true
 
 workspace-hack.workspace = true
 zeroize.workspace = true

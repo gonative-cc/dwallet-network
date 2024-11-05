@@ -1,21 +1,24 @@
 // Copyright (c) dWallet Labs, Ltd.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
-use crate::{base_types::{ObjectID, SuiAddress}, id::{ID, UID}, SUI_SYSTEM_ADDRESS};
+use crate::{
+    base_types::{ObjectID, SuiAddress},
+    id::{ID, UID},
+    SUI_SYSTEM_ADDRESS,
+};
 use move_core_types::{
     ident_str,
     identifier::IdentStr,
     language_storage::{StructTag, TypeTag},
 };
 use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
 
 pub const DWALLET_MODULE_NAME: &IdentStr = ident_str!("dwallet");
 pub const MESSAGE_APPROVAL_STRUCT_NAME: &IdentStr = ident_str!("MessageApproval");
 pub const APPROVE_MESSAGES_FUNC_NAME: &IdentStr = ident_str!("approve_messages");
 pub const SIGN_MESSAGES_FUNC_NAME: &IdentStr = ident_str!("sign_messages");
-
 
 pub const DWALLET_2PC_MPC_ECDSA_K1_MODULE_NAME: &IdentStr = ident_str!("dwallet_2pc_mpc_ecdsa_k1");
 pub const DWALLET_STRUCT_NAME: &IdentStr = ident_str!("DWallet");
@@ -36,8 +39,6 @@ pub const CREATE_PRESIGN_OUTPUT_FUNC_NAME: &IdentStr = ident_str!("create_presig
 pub const CREATE_PRESIGN_FUNC_NAME: &IdentStr = ident_str!("create_presign");
 pub const CREATE_SIGN_MESSAGES_FUNC_NAME: &IdentStr = ident_str!("create_sign_messages");
 pub const CREATE_SIGN_OUTPUT_FUNC_NAME: &IdentStr = ident_str!("create_sign_output");
-
-
 
 // Rust version of the Move sui_system::dwallet::SignSession type
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, Eq, PartialEq)]
@@ -80,7 +81,6 @@ impl<S: Serialize + DeserializeOwned> SignSession<S> {
     }
 }
 
-
 // Rust version of the Move sui_system::dwallet::SignOutput type
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, Eq, PartialEq)]
 pub struct SignOutput {
@@ -121,7 +121,6 @@ impl SignOutput {
         bcs::to_bytes(&self).unwrap()
     }
 }
-
 
 // Rust version of the Move sui_system::dwallet_2pc_mpc_ecdsa_k1::DWallet type
 #[derive(Debug, Serialize, Deserialize, Clone, JsonSchema, Eq, PartialEq)]

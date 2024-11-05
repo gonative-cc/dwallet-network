@@ -863,16 +863,14 @@ pub struct ProtocolConfig {
     // twopc_mpc::sign_verify_encrypted_signature_parts_prehash_cost_base
     sign_verify_encrypted_signature_parts_prehash_cost_base: Option<u64>,
 
-    //sui_state_proof::sui_state_proof_verify_committee_cost_base
+    // sui_state_proof::sui_state_proof_verify_committee_cost_base.
     sui_state_proof_verify_committee_cost_base: Option<u64>,
 
-    //sui_state_proof::sui_state_proof_verify_link_cap_base
+    // sui_state_proof::sui_state_proof_verify_link_cap_base.
     sui_state_proof_verify_link_cap_base: Option<u64>,
 
-    //sui_state_proof::sui_state_proof_verify_transaction_base
+    // sui_state_proof::sui_state_proof_verify_transaction_base.
     sui_state_proof_verify_transaction_base: Option<u64>,
-
-
 
     /// === Execution Version ===
     execution_version: Option<u64>,
@@ -893,6 +891,13 @@ pub struct ProtocolConfig {
     /// Maximum allowed precision loss when reducing voting weights for the random beacon
     /// protocol.
     random_beacon_reduction_allowed_delta: Option<u16>,
+
+    // eth_dwallet::verify_eth_state_cost_base.
+    verify_eth_state_cost_base: Option<u64>,
+    // eth_dwallet::verify_message_proof_cost_base.
+    verify_message_proof_cost_base: Option<u64>,
+    // eth_dwallet::create_initial_eth_state_data_cost_base.
+    create_initial_eth_state_data_cost_base: Option<u64>,
 }
 
 // feature flags
@@ -1109,7 +1114,9 @@ impl ProtocolConfig {
     }
 
     pub fn signature_mpc_tiresias_public_parameters(&self) -> Option<&str> {
-        self.feature_flags.signature_mpc_tiresias_public_parameters.as_deref()
+        self.feature_flags
+            .signature_mpc_tiresias_public_parameters
+            .as_deref()
     }
 }
 
@@ -1223,7 +1230,9 @@ impl ProtocolConfig {
             // All flags are disabled in V1
             feature_flags: Default::default(),
 
-            max_tx_size_bytes: Some(128 * 1024),
+            // `max_tx_size_bytes` and `max_pure_argument_size` increased to 1024 * 1024
+            // to be able to support Ethereum light client proofs.
+            max_tx_size_bytes: Some(1024 * 1024),
             // We need this number to be at least 100x less than `max_serialized_tx_effects_size_bytes`otherwise effects can be huge
             max_input_objects: Some(2048),
             max_serialized_tx_effects_size_bytes: Some(512 * 1024),
@@ -1233,7 +1242,9 @@ impl ProtocolConfig {
             max_arguments: Some(512),
             max_type_arguments: Some(16),
             max_type_argument_depth: Some(16),
-            max_pure_argument_size: Some(1024 * 1024), // TODO change back to 16
+            // Note this is necessary for the SUI light client.
+            // Changed from 16 * 1024 as otherwise we can't submit the state proof for SUI.
+            max_pure_argument_size: Some(1024 * 1024),
             max_programmable_tx_commands: Some(1024),
             move_binary_format_version: Some(6),
             max_move_object_size: Some(250 * 1024),
@@ -1325,7 +1336,7 @@ impl ProtocolConfig {
             dynamic_field_borrow_child_object_cost_base: Some(100),
             dynamic_field_borrow_child_object_child_ref_cost_per_byte: Some(10),
             dynamic_field_borrow_child_object_type_cost_per_byte: Some(10),
-             // Cost params for the Move native function `remove_child_object<Child: key>(parent: address, id: address): Child`
+            // Cost params for the Move native function `remove_child_object<Child: key>(parent: address, id: address): Child`
             dynamic_field_remove_child_object_cost_base: Some(100),
             dynamic_field_remove_child_object_child_cost_per_byte: Some(2),
             dynamic_field_remove_child_object_type_cost_per_byte: Some(2),
@@ -1341,7 +1352,7 @@ impl ProtocolConfig {
             event_emit_cost_base: Some(52),
             event_emit_value_size_derivation_cost_per_byte: Some(2),
             event_emit_tag_size_derivation_cost_per_byte: Some(5),
-            event_emit_output_cost_per_byte:Some(10),
+            event_emit_output_cost_per_byte: Some(10),
 
             //  `object` module
             // Cost params for the Move native function `borrow_uid<T: key>(obj: &T): &UID`
@@ -1467,13 +1478,12 @@ impl ProtocolConfig {
             // twopc_mpc::sign_verify_encrypted_signature_parts_prehash_cost_base
             sign_verify_encrypted_signature_parts_prehash_cost_base: Some(52),
 
-            //sui_state_proof::sui_state_proof_verify_committee_cost_base
+            // sui_state_proof::sui_state_proof_verify_committee_cost_base.
             sui_state_proof_verify_committee_cost_base: Some(52),
-            //sui_state_proof::sui_state_proof_verify_link_cap_base
+            // sui_state_proof::sui_state_proof_verify_link_cap_base.
             sui_state_proof_verify_link_cap_base: Some(52),
-            //sui_state_proof::sui_state_proof_verify_transaction_base
+            // sui_state_proof::sui_state_proof_verify_transaction_base.
             sui_state_proof_verify_transaction_base: Some(52),
-        
 
             max_size_written_objects: None,
             max_size_written_objects_system_tx: None,
@@ -1499,6 +1509,10 @@ impl ProtocolConfig {
             max_age_of_jwk_in_epochs: None,
 
             random_beacon_reduction_allowed_delta: None,
+
+            verify_eth_state_cost_base: None,
+            verify_message_proof_cost_base: None,
+            create_initial_eth_state_data_cost_base: None,
 
             // When adding a new constant, set it to None in the earliest version, like this:
             // new_constant: None,
@@ -1775,10 +1789,9 @@ impl ProtocolConfig {
                     cfg.feature_flags.zklogin_supported_providers = Default::default();
                     cfg.feature_flags.random_beacon = false;
 
-                    // enable signature mpc and set paillier public key for testing
-                    cfg.feature_flags.signature_mpc = true;
-                    cfg.feature_flags.signature_mpc_tiresias_public_parameters = Some(String::from("97431848911c007fa3a15b718ae97da192e68a4928c0259f2d19ab58ed01f1aa930e6aeb81f0d4429ac2f037def9508b91b45875c11668cea5dc3d4941abd8fbb2d6c8750e88a69727f982e633051f60252ad96ba2e9c9204f4c766c1c97bc096bb526e4b7621ec18766738010375829657c77a23faf50e3a31cb471f72c7abecdec61bdf45b2c73c666aa3729add2d01d7d96172353380c10011e1db3c47199b72da6ae769690c883e9799563d6605e0670a911a57ab5efc69a8c5611f158f1ae6e0b1b6434bafc21238921dc0b98a294195e4e88c173c8dab6334b207636774daad6f35138b9802c1784f334a82cbff480bb78976b22bb0fb41e78fdcb8095"));
-
+                    cfg.verify_eth_state_cost_base = Some(52);
+                    cfg.verify_message_proof_cost_base = Some(52);
+                    cfg.create_initial_eth_state_data_cost_base = Some(52);
                 }
                 // Use this template when making changes:
                 //
