@@ -57,6 +57,7 @@ use std::sync::Arc;
 use sui_protocol_config::ProtocolConfig;
 use sui_types::{MOVE_STDLIB_ADDRESS, SUI_FRAMEWORK_ADDRESS, SUI_SYSTEM_ADDRESS};
 use transfer::TransferReceiveObjectInternalCostParams;
+use crate::crypto::twopc_mpc::TwoPCMPCDKGCostParams;
 
 mod address;
 mod crypto;
