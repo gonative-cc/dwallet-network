@@ -4,6 +4,7 @@
 
 use crate::checkpoints::CheckpointServiceNoop;
 use crate::consensus_handler::SequencedConsensusTransaction;
+use crate::signature_mpc::{SignatureMPCService, SignatureMPCServiceNoop};
 use core::default::Default;
 use fastcrypto::hash::MultisetHash;
 use fastcrypto::traits::KeyPair;
@@ -375,6 +376,7 @@ pub async fn send_consensus(authority: &AuthorityState, cert: &VerifiedCertifica
         .process_consensus_transactions_for_tests(
             vec![transaction],
             &Arc::new(CheckpointServiceNoop {}),
+            &Arc::new(SignatureMPCServiceNoop {}),
             authority.db(),
             &authority.metrics.skipped_consensus_txns,
         )
@@ -399,6 +401,7 @@ pub async fn send_consensus_no_execution(authority: &AuthorityState, cert: &Veri
         .process_consensus_transactions_for_tests(
             vec![transaction],
             &Arc::new(CheckpointServiceNoop {}),
+            &Arc::new(SignatureMPCServiceNoop {}),
             &authority.db(),
             &authority.metrics.skipped_consensus_txns,
         )

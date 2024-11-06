@@ -414,6 +414,7 @@ pub enum OperationType {
     ProgrammableTransaction,
     AuthenticatorStateUpdate,
     RandomnessStateUpdate,
+    DKGSignatureMPCOutput,
     EndOfEpochTransaction,
 }
 
@@ -435,6 +436,7 @@ impl From<&SuiTransactionBlockKind> for OperationType {
             SuiTransactionBlockKind::RandomnessStateUpdate(_) => {
                 OperationType::RandomnessStateUpdate
             }
+            SuiTransactionBlockKind::SignatureMPCOutput(_) => OperationType::DKGSignatureMPCOutput,
             SuiTransactionBlockKind::EndOfEpochTransaction(_) => {
                 OperationType::EndOfEpochTransaction
             }

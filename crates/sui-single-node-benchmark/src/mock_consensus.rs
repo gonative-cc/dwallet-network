@@ -9,6 +9,7 @@ use sui_core::authority::AuthorityState;
 use sui_core::checkpoints::CheckpointServiceNoop;
 use sui_core::consensus_adapter::SubmitToConsensus;
 use sui_core::consensus_handler::SequencedConsensusTransaction;
+use sui_core::signature_mpc::SignatureMPCServiceNoop;
 use sui_types::error::SuiResult;
 use sui_types::messages_consensus::ConsensusTransaction;
 use tokio::sync::mpsc;
@@ -53,6 +54,7 @@ impl MockConsensusClient {
     ) {
         let epoch_store = validator.epoch_store_for_testing().clone();
         let checkpoint_service = Arc::new(CheckpointServiceNoop {});
+        let signature_mpc_service = Arc::new(SignatureMPCServiceNoop {});
         let counter = IntCounter::new(
             "skipped_consensus_txns",
             "Total number of consensus transactions skipped",
@@ -69,6 +71,7 @@ impl MockConsensusClient {
                             .process_consensus_transactions_for_tests(
                                 mem::take(&mut transactions),
                                 &checkpoint_service,
+                                &signature_mpc_service,
                                 &validator.database,
                                 &counter,
                             )
