@@ -65,6 +65,7 @@ exclude = [
     "external-crates/move/move-execution/v1/crates/move-stdlib",
     "external-crates/move/move-execution/v1/crates/move-vm-runtime",
     "sdk/move-binary-format-wasm",
+    "sdk/eth-light-client-wasm"
 ]
 
 members = [
@@ -73,6 +74,7 @@ members = [
     "crates/anemo-benchmark",
     "crates/data-transform",
     "crates/light-client-helpers",
+    "crates/mpc-protocols",
     "crates/mysten-common",
     "crates/mysten-metrics",
     "crates/mysten-network",
@@ -658,6 +660,7 @@ narwhal-types = { path = "narwhal/types" }
 narwhal-worker = { path = "narwhal/worker" }
 
 sui-execution = { path = "sui-execution" }
+
 # sui-move-natives = { path = "sui-execution/latest/sui-move-natives", package = "sui-move-natives-latest" }
 # sui-adapter = { path = "sui-execution/latest/sui-adapter", package = "sui-adapter-latest" }
 # sui-verifier = { path = "sui-execution/latest/sui-verifier", package = "sui-verifier-latest" }

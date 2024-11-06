@@ -159,6 +159,7 @@ pub struct NativesCostTable {
 
     // tendermint light client
     pub tendermint_light_client_cost_params: TendermintLightClientCostParams,
+    
     // Sui State Proof
     pub sui_state_proof_cost_params: SuiStateProofCostParams,
 

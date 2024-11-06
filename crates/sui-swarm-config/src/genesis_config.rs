@@ -7,6 +7,7 @@ use anyhow::Result;
 use fastcrypto::traits::KeyPair;
 use rand::{rngs::StdRng, SeedableRng};
 use serde::{Deserialize, Serialize};
+use signature_mpc::twopc_mpc_protocols::{DecryptionPublicParameters, SecretKeyShareSizedNumber};
 use sui_config::genesis::{GenesisCeremonyParameters, TokenAllocation};
 use sui_config::node::{DEFAULT_COMMISSION_RATE, DEFAULT_VALIDATOR_GAS_PRICE};
 use sui_config::{local_ip_utils, Config};
@@ -44,6 +45,10 @@ pub struct ValidatorGenesisConfig {
     pub metrics_address: SocketAddr,
     #[serde(default = "default_multiaddr_address")]
     pub narwhal_metrics_address: Multiaddr,
+    #[serde(default)]
+    pub signature_mpc_tiresias_public_parameters: Option<DecryptionPublicParameters>,
+    #[serde(default)]
+    pub signature_mpc_tiresias_key_share_decryption_key_share: Option<SecretKeyShareSizedNumber>,
     pub gas_price: u64,
     pub commission_rate: u64,
     pub narwhal_primary_address: Multiaddr,
@@ -104,6 +109,9 @@ pub struct ValidatorGenesisConfigBuilder {
     port_offset: Option<u16>,
     /// Whether to use a specific p2p listen ip address. This is useful for testing on AWS.
     p2p_listen_ip_address: Option<IpAddr>,
+
+    signature_mpc_tiresias_public_parameters: Option<DecryptionPublicParameters>,
+    signature_mpc_tiresias_key_share_decryption_key_share: Option<SecretKeyShareSizedNumber>,
 }
 
 impl ValidatorGenesisConfigBuilder {
@@ -138,6 +146,24 @@ impl ValidatorGenesisConfigBuilder {
 
     pub fn with_p2p_listen_ip_address(mut self, p2p_listen_ip_address: IpAddr) -> Self {
         self.p2p_listen_ip_address = Some(p2p_listen_ip_address);
+        self
+    }
+
+    pub fn with_signature_mpc_tiresias_public_parameters(
+        mut self,
+        signature_mpc_tiresias_public_parameters: DecryptionPublicParameters,
+    ) -> Self {
+        self.signature_mpc_tiresias_public_parameters =
+            Some(signature_mpc_tiresias_public_parameters);
+        self
+    }
+
+    pub fn with_signature_mpc_tiresias_key_share_decryption_key_share(
+        mut self,
+        signature_mpc_tiresias_key_share_decryption_key_share: SecretKeyShareSizedNumber,
+    ) -> Self {
+        self.signature_mpc_tiresias_key_share_decryption_key_share =
+            Some(signature_mpc_tiresias_key_share_decryption_key_share);
         self
     }
 
@@ -202,6 +228,9 @@ impl ValidatorGenesisConfigBuilder {
             p2p_listen_address,
             metrics_address: metrics_address.to_socket_addr().unwrap(),
             narwhal_metrics_address,
+            signature_mpc_tiresias_public_parameters: self.signature_mpc_tiresias_public_parameters,
+            signature_mpc_tiresias_key_share_decryption_key_share: self
+                .signature_mpc_tiresias_key_share_decryption_key_share,
             gas_price,
             commission_rate: DEFAULT_COMMISSION_RATE,
             narwhal_primary_address,
