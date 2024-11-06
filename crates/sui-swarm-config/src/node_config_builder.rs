@@ -13,7 +13,7 @@ use sui_config::node::{
     default_enable_index_processing, default_end_of_epoch_broadcast_channel_capacity,
     AuthorityKeyPairWithPath, AuthorityStorePruningConfig, CheckpointExecutorConfig,
     DBCheckpointConfig, ExpensiveSafetyCheckConfig, Genesis, KeyPairWithPath,
-    OverloadThresholdConfig, StateArchiveConfig, StateSnapshotConfig,
+    OverloadThresholdConfig, SignatureMPCTiresias, StateArchiveConfig, StateSnapshotConfig,
     DEFAULT_GRPC_CONCURRENCY_LIMIT,
 };
 use sui_config::node::{default_zklogin_oauth_providers, ConsensusProtocol};
@@ -189,6 +189,12 @@ impl ValidatorConfigBuilder {
                 .unwrap_or(3600),
             zklogin_oauth_providers: default_zklogin_oauth_providers(),
             overload_threshold_config: self.overload_threshold_config.unwrap_or_default(),
+            signature_mpc_tiresias: Some(SignatureMPCTiresias::new(
+                validator.signature_mpc_tiresias_public_parameters.unwrap(),
+                validator
+                    .signature_mpc_tiresias_key_share_decryption_key_share
+                    .unwrap(),
+            )),
         }
     }
 
@@ -376,6 +382,7 @@ impl FullnodeConfigBuilder {
             network_key_pair: self.network_key_pair.unwrap_or(KeyPairWithPath::new(
                 SuiKeyPair::Ed25519(validator_config.network_key_pair),
             )),
+            signature_mpc_tiresias: None,
             db_path: self
                 .db_path
                 .unwrap_or(config_directory.join(FULL_NODE_DB_PATH).join(key_path)),

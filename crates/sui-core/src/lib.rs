@@ -25,6 +25,7 @@ pub(crate) mod post_consensus_tx_reorder;
 pub mod quorum_driver;
 pub mod safe_client;
 mod scoring_decision;
+pub mod signature_mpc;
 mod stake_aggregator;
 pub mod state_accumulator;
 pub mod storage;

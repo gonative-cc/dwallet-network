@@ -365,6 +365,14 @@ struct FeatureFlags {
     // If true allow calling receiving_object_id function
     #[serde(skip_serializing_if = "is_false")]
     allow_receiving_object_id: bool,
+
+    // Enable signature mpc protocol
+    #[serde(skip_serializing_if = "is_false")]
+    signature_mpc: bool,
+
+    // The network public key for paillier.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    signature_mpc_tiresias_public_parameters: Option<String>,
 }
 
 fn is_false(b: &bool) -> bool {
@@ -1103,6 +1111,16 @@ impl ProtocolConfig {
 
     pub fn hardened_otw_check(&self) -> bool {
         self.feature_flags.hardened_otw_check
+    }
+
+    pub fn signature_mpc(&self) -> bool {
+        self.feature_flags.signature_mpc
+    }
+
+    pub fn signature_mpc_tiresias_public_parameters(&self) -> Option<&str> {
+        self.feature_flags
+            .signature_mpc_tiresias_public_parameters
+            .as_deref()
     }
 }
 
