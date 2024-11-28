@@ -2,7 +2,7 @@
 #[allow(unused_function, unused_field, unused_use)]
 module dwallet_system::native_dwallet_tests {
 
-    use dwallet_system::tendermint_lc::{Self, Client, init_lc};
+    use dwallet_system::tendermint_lc::{Self, Client, init_consensus_state};
     use dwallet::test_scenario;
 
     use dwallet_system::native_dwallet::{link_dwallet, verify_native_transaction};
@@ -23,8 +23,8 @@ module dwallet_system::native_dwallet_tests {
 
         let height: u64 = 10;
         let ctx = test_scenario::ctx(&mut scenario);
-	let 	(proof, prefix, path, value, root) = state_proof_test_data();
-        let client = init_lc(height, timestamp, next_validators_hash, root, ctx);
+	let (proof, prefix, path, value, root) = state_proof_test_data();
+        let client = init_consensus_state(height, timestamp, next_validators_hash, root, ctx);
         (proof, prefix, path, value, root, client, scenario)
     }
     
@@ -42,7 +42,7 @@ module dwallet_system::native_dwallet_tests {
 
     #[test]
     fun verify_native_transaction_test() {
-           let (proof, prefix, path, value, _root, client, scenario) = setup();
+        let (proof, prefix, path, value, _root, client, scenario) = setup();
         let ctx = test_scenario::ctx(&mut scenario);
         let dwallet_cap = create_dwallet_cap(ctx);
         let height = 10;

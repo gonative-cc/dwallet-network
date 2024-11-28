@@ -74,7 +74,9 @@ module dwallet_system::tendermint_lc {
         client.latest_height
     }
 
-    public fun init_lc(height: u64, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, ctx: &mut TxContext): Client {
+    // who can do this action?
+    // this action only run one time
+    public fun init_consensus_state(height: u64, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, ctx: &mut TxContext): Client {
         let client = Client {
             id: object::new(ctx),
             latest_height: height
