@@ -8,7 +8,7 @@ module dwallet_system::lc_tests {
     use dwallet::test_scenario;
     // use dwallet::dynamic_field as fields;
     use dwallet::test_utils::{Self};
-    use dwallet_system::tendermint_lc::{init_lc, Self};
+    use dwallet_system::tendermint_lc::{init_consensus_state, Self};
 
     friend dwallet_system::native_dwallet_tests;
     
@@ -57,7 +57,7 @@ module dwallet_system::lc_tests {
         let next_validators_hash : vector<u8> = vector[2];
         let root: vector<u8> = vector[3];
         let ctx = test_scenario::ctx(&mut scenario);
-        let client = init_lc(height, timestamp, next_validators_hash, root, ctx);
+        let client = init_consensus_state(height, timestamp, next_validators_hash, root, ctx);
         
         assert!(tendermint_lc::latest_height(&client) == height, 0);
         test_scenario::end(scenario);
@@ -69,7 +69,7 @@ module dwallet_system::lc_tests {
 
         let (height, timestamp, next_validators_hash, root) = set_up();
         let ctx = test_scenario::ctx(&mut scenario);
-        let client = init_lc(height, timestamp, next_validators_hash, root, ctx);
+        let client = init_consensus_state(height, timestamp, next_validators_hash, root, ctx);
         assert!(tendermint_lc::latest_height(&client) == height, 0);
         let header = sample_header();
         let ans = tendermint_lc::verify_lc(&client, header);
@@ -100,7 +100,7 @@ module dwallet_system::lc_tests {
         let (height, timestamp, next_validators_hash, root) = set_up();
 
         let ctx = test_scenario::ctx(&mut scenario);
-        let client = init_lc(height, timestamp, next_validators_hash, root, ctx);
+        let client = init_consensus_state(height, timestamp, next_validators_hash, root, ctx);
         
         assert!(tendermint_lc::latest_height(&client) == height, 0);
         let header = sample_header();
