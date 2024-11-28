@@ -47,8 +47,6 @@ pub struct TendermintLightClientCostParams {
     pub tendermint_extract_consensus_state_base: InternalGas,
 }
 
-const INVALID_INPUT: u64 = 0;
-
 enum NativeError {
     PrefixInvalid = 0,
     PathInvalid,
