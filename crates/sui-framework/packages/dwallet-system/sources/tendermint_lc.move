@@ -15,8 +15,6 @@ module dwallet_system::tendermint_lc {
     const NextValidatorsHashInvalid: u64 = 6; 
     const EUpdateFailed: u64 = 7;
     
-
-  
     // TODO: Make Client shareobject
     struct Client has key, store {
         id: UID,
@@ -28,8 +26,7 @@ module dwallet_system::tendermint_lc {
 	proof_specs: u64,
 	upgrade_path: vector<u8>,
 	allow_update: u64,
-	frozen_height: option::Option<u64>
-	
+	frozen_height: option::Option<u64>	
     }
 
     public fun init_client(height: u64, ctx: &mut TxContext): Client {
