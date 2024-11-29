@@ -1,5 +1,5 @@
 use move_binary_format::errors::PartialVMResult;
-use move_core_types::gas_algebra::InternalGas;
+use move_core_types::{gas_algebra::InternalGas, u256::U256};
 use move_vm_runtime::native_functions::NativeContext;
 use move_vm_types::{
     loaded_data::runtime_types::Type,
@@ -55,6 +55,7 @@ enum NativeError {
     HeaderInvalid,
     TimestampInvalid,
     NextValidatorsHashInvalid,
+    TypeInvalid,
 }
 
 fn state_proof_type_check(
@@ -162,6 +163,28 @@ fn tendermint_verify_type_check(
     Ok((header, cs, timestamp))
 }
 
+fn tendermint_options(
+    clock_drift: U256,
+    trust_threashold: U256,
+    trusting_period: U256,
+) -> Result<Options, NativeError> {
+    let Ok(clock_drift) = clock_drift.try_into() else {
+        return Err(NativeError::TypeInvalid);
+    };
+
+    let Ok(trusting_period) = trusting_period.try_into() else {
+        return Err(NativeError::TypeInvalid);
+    };
+
+    let options = Options {
+        clock_drift: Duration::new(clock_drift, 0),
+        trust_threshold: TrustThreshold::ONE_THIRD,
+        trusting_period: Duration::new(trusting_period, 0),
+    };
+
+    Ok(options)
+}
+
 // TODO: remove trace and add document for this funciton.
 #[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_verify_lc(
@@ -177,18 +200,19 @@ pub fn tendermint_verify_lc(
     let next_validators_hash = pop_arg!(args, Vector).to_vec_u8()?;
     let timestamp = pop_arg!(args, Vector).to_vec_u8()?;
 
+    let clock_drift = pop_arg!(args, U256);
+    let trust_threashold = pop_arg!(args, U256);
+    let trusting_period = pop_arg!(args, U256);
+
+    let options = match tendermint_options(clock_drift, trust_threashold, trusting_period) {
+        Ok(options) => options,
+        Err(err) => return Ok(NativeResult::err(context.gas_used(), err as u64)),
+    };
+
+    let chain_id = ChainId::new("ibc-0").unwrap();
+
     match tendermint_verify_type_check(header, commitment_root, next_validators_hash, timestamp) {
         Ok((header, cs, timestamp)) => {
-            // move those data to init lc method
-            let five_year: u64 = 5 * 365 * 24 * 60 * 60;
-            let options = Options {
-                clock_drift: Duration::new(40, 0),
-                trust_threshold: TrustThreshold::ONE_THIRD,
-                trusting_period: Duration::new(five_year, 0),
-            };
-
-            // TODO: Move chain_id to init lc method
-            let chain_id = ChainId::new("ibc-0").unwrap();
             let result = verify_header_lc::<Sha256>(
                 &chain_id,
                 &cs,
