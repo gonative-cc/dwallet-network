@@ -4,7 +4,7 @@ module dwallet_system::tendermint_lc {
     use dwallet::object::{UID, Self, ID};
     use dwallet::tx_context::TxContext;
     use dwallet::dynamic_field as field;
-
+    use std::option as option;
     
     const PrefixInvalid: u64 = 0;
     const PathInvalid: u64 = 1;
@@ -14,13 +14,39 @@ module dwallet_system::tendermint_lc {
     const TimestampInvalid: u64 = 5; 
     const NextValidatorsHashInvalid: u64 = 6; 
     const EUpdateFailed: u64 = 7;
+    
 
+  
     // TODO: Make Client shareobject
     struct Client has key, store {
         id: UID,
-        latest_height: u64
+	chain_id: vector<u8>,
+	trust_threashold: u64,
+	unbonding_period: u64,
+	max_clock_drift: u64,
+	latest_height: u64,
+	proof_specs: u64,
+	upgrade_path: vector<u8>,
+	allow_update: u64,
+	frozen_height: option::Option<u64>
+	
     }
 
+    public fun init_client(height: u64, ctx: &mut TxContext): Client {
+	Client {
+            id: object::new(ctx),
+	    chain_id: vector[1, 2, 3],
+            latest_height: height,
+	    trust_threashold: 0,
+	    unbonding_period: 0,
+	    max_clock_drift: 0,
+	    proof_specs: 0,
+	    upgrade_path: vector[1, 2, 3],
+	    allow_update: 1,
+	    frozen_height: option::some(1),
+        }
+    }
+    
     public fun client_id(client: &Client): ID {
         object::id(client)
     }
@@ -74,12 +100,7 @@ module dwallet_system::tendermint_lc {
         client.latest_height
     }
 
-    public fun init_client(height: u64, ctx: &mut TxContext): Client {
-	 Client {
-            id: object::new(ctx),
-            latest_height: height
-        }
-    }
+
     // who can do this action?
     // this action only run one time
     public fun init_consensus_state(height: u64, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, ctx: &mut TxContext): Client {
