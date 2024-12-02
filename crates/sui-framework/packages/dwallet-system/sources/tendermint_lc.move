@@ -103,14 +103,9 @@ module dwallet_system::tendermint_lc {
 
     // who can do this action?
     // this action only run one time
-    public fun init_consensus_state(height: u64, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, ctx: &mut TxContext): Client {
-        let client = init_client(height, vector[105, 98, 99, 45, 48], 0, 5 * 365 * 24 * 60 * 60, 40, ctx);
-
+    public fun init_consensus_state(client: &mut Client, height: u64, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>) {	
         let cs = consensus_state(height, timestamp, next_validators_hash, commitment_root);
         field::add(&mut client.id, height, cs);
-        // public object anyone call call client
-        // transfer::share_object(client);
-        client
     }
 
     

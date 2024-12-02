@@ -2,7 +2,7 @@
 #[allow(unused_function, unused_field, unused_use)]
 module dwallet_system::native_dwallet_tests {
 
-    use dwallet_system::tendermint_lc::{Self, Client, init_consensus_state};
+    use dwallet_system::tendermint_lc::{Self, Client, init_consensus_state, init_client};
     use dwallet::test_scenario;
 
     use dwallet_system::native_dwallet::{link_dwallet, verify_native_transaction};
@@ -24,7 +24,8 @@ module dwallet_system::native_dwallet_tests {
         let height: u64 = 10;
         let ctx = test_scenario::ctx(&mut scenario);
 	let (proof, prefix, path, value, root) = state_proof_test_data();
-        let client = init_consensus_state(height, timestamp, next_validators_hash, root, ctx);
+        let client = init_client(height, vector[105, 98, 99, 45, 48], 0, 5 * 365 * 24 * 60 * 60, 40, ctx);
+	init_consensus_state(&mut client, height, timestamp, next_validators_hash, root);
         (proof, prefix, path, value, root, client, scenario)
     }
     
