@@ -30,7 +30,7 @@ use ibc::{
 };
 use smallvec::smallvec;
 use std::{error::Error, str::FromStr, time::Duration};
-use tendermint::crypto::default::Sha256;
+use tendermint::{crypto::default::Sha256, trust_threshold};
 use tendermint::{merkle::MerkleHash, Hash, Time};
 use tendermint_light_client_verifier::{
     options::Options,
@@ -169,16 +169,27 @@ fn tendermint_options(
     trusting_period: U256,
 ) -> Result<Options, NativeError> {
     let Ok(clock_drift) = clock_drift.try_into() else {
+        println!("This is error");
         return Err(NativeError::TypeInvalid);
     };
 
+    let Ok(trust_threshold) = TryInto::<u64>::try_into(trust_threashold) else {
+        return Err(NativeError::TypeInvalid);
+    };
+    
     let Ok(trusting_period) = trusting_period.try_into() else {
         return Err(NativeError::TypeInvalid);
     };
 
+    let trust_threshold = match trust_threshold {
+        0 => TrustThreshold::ONE_THIRD,
+        1 => TrustThreshold::TWO_THIRDS,
+        _ => return Err(NativeError::TypeInvalid)
+    };
+
     let options = Options {
         clock_drift: Duration::new(clock_drift, 0),
-        trust_threshold: TrustThreshold::ONE_THIRD,
+        trust_threshold,
         trusting_period: Duration::new(trusting_period, 0),
     };
 
@@ -192,7 +203,7 @@ pub fn tendermint_verify_lc(
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
-    assert!(args.len() == 4);
+    assert!(args.len() == 8);
     assert!(ty_args.len() == 0);
 
     let header = pop_arg!(args, Vector).to_vec_u8()?;
@@ -200,17 +211,29 @@ pub fn tendermint_verify_lc(
     let next_validators_hash = pop_arg!(args, Vector).to_vec_u8()?;
     let timestamp = pop_arg!(args, Vector).to_vec_u8()?;
 
-    let clock_drift = pop_arg!(args, U256);
-    let trust_threashold = pop_arg!(args, U256);
     let trusting_period = pop_arg!(args, U256);
+    let trust_threashold = pop_arg!(args, U256);
+    let clock_drift = pop_arg!(args, U256);    
+    let chain_id = pop_arg!(args, Vector).to_vec_u8()?;
 
+    
     let options = match tendermint_options(clock_drift, trust_threashold, trusting_period) {
         Ok(options) => options,
         Err(err) => return Ok(NativeResult::err(context.gas_used(), err as u64)),
     };
 
-    let chain_id = ChainId::new("ibc-0").unwrap();
 
+    let chain_id_str = match std::str::from_utf8(&chain_id) {
+        Ok(s) => s,
+        Err(e) => {
+            println!("{}", e);
+            return Ok(NativeResult::err(context.gas_used(), 0))
+        },
+    };
+
+    let chain_id = ChainId::new(chain_id_str).unwrap();
+
+    
     match tendermint_verify_type_check(header, commitment_root, next_validators_hash, timestamp) {
         Ok((header, cs, timestamp)) => {
             let result = verify_header_lc::<Sha256>(
