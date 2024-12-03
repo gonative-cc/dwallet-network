@@ -119,7 +119,7 @@ module dwallet_system::tendermint_lc {
 	let trusting_period = client.trusting_period;
 	let chain_id = client.chain_id;
 	let clock_drift = client.clock_drift;
-	let trust_threadshold = client.trust_threashold;
+	let trust_threshold = client.trust_threshold;
 	
         tendermint_verify_lc(chain_id, clock_drift, trust_threadshold, trusting_period, timestamp, next_validators_hash, commitment_root , header)
     }
