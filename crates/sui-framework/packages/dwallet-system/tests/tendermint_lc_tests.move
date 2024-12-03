@@ -34,7 +34,11 @@ module dwallet_system::lc_tests {
         let timestamp: vector<u8> = vector[50, 48, 50, 52, 45, 48, 55, 45, 49, 50, 84, 49, 49, 58, 48, 53, 58, 48, 57, 46, 51, 54, 54, 56, 52, 57, 49, 48, 52, 90];
         let next_validators_hash : vector<u8> = vector[21, 60, 28, 187, 0, 190, 203, 52, 31, 17, 78, 57, 164, 96, 36, 158, 242, 75, 82, 181, 40, 107, 205, 43, 108, 57, 226, 105, 169, 115, 88, 23];
         let root: vector<u8> = vector[250, 71, 122, 95, 80, 76, 172, 76, 196, 66, 160, 101, 147, 54, 30, 152, 195, 50, 162, 105, 97, 187, 215, 244, 26, 19, 62, 215, 255, 219, 119, 109];
-	let client = init_client(height, vector[105, 98, 99, 45, 48], 0, 5 * 365 * 24 * 60 * 60, 40, ctx);
+	let chain_id = vector[105, 98, 99, 45, 48]; // ibc-0;
+	let trust_period = 5 * 365 * 24 * 60 * 60; // five year
+	let trusted_threadshold = 0; // 0 = 1/3, 1 = 2/3, else = error;
+	let clock_drift = 40;
+	let client = init_client(height, chain_id, trusted_threadshold, trust_period, clock_drift, ctx);
 	init_consensus_state(&mut client, height, timestamp, next_validators_hash, root);
         
         (
@@ -92,7 +96,7 @@ module dwallet_system::lc_tests {
     fun tendermint_update_lc_test() {
         let scenario = test_scenario::begin(SENDER);
 	let ctx = test_scenario::ctx(&mut scenario);
-        let (height, _, _, _, client) = set_up(ctx);
+        let (_, _, _, _, client) = set_up(ctx);
 	
         let header = sample_header();
         // shouldn't return error
