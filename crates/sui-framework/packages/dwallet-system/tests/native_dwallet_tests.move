@@ -23,9 +23,17 @@ module dwallet_system::native_dwallet_tests {
 
         let height: u64 = 10;
         let ctx = test_scenario::ctx(&mut scenario);
+
+	
 	let (proof, prefix, path, value, root) = state_proof_test_data();
-        let client = init_client(height, vector[105, 98, 99, 45, 48], 0, 5 * 365 * 24 * 60 * 60, 40, ctx);
+	
+	let chain_id = vector[105, 98, 99, 45, 48]; // ibc-0;
+	let trust_period = 5 * 365 * 24 * 60 * 60; // five year
+	let trusted_threadshold = 0; // 0 = 1/3, 1 = 2/3, else = error;
+	let clock_drift = 40;
+	let client = init_client(height, chain_id, trusted_threadshold, trust_period, clock_drift, ctx);
 	init_consensus_state(&mut client, height, timestamp, next_validators_hash, root);
+	
         (proof, prefix, path, value, root, client, scenario)
     }
     
