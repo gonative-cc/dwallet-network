@@ -128,9 +128,9 @@ module dwallet_system::lc_tests {
     fun set_up_stress_test(): (u64, vector<u8>, vector<u8>, vector<u8>) { 
         // data from local chain. please check https://github.com/gonative-cc/tendermint-lightclient for more details
         let height = 24736455;
-        let timestamp: vector<u8> = vector[222, 214, 151, 33, 57, 37, 65, 124, 71, 149, 131, 107, 9, 116, 118, 94, 13, 121, 213, 209, 179, 203, 245, 245, 210, 28, 120, 191, 180, 52, 97, 180];
+        let timestamp: vector<u8> = vector[50, 48, 50, 52, 45, 49, 49, 45, 50, 56, 84, 49, 49, 58, 51, 56, 58, 50, 48, 46, 54, 56, 50, 55, 55, 50, 57, 53, 57, 90];
         let next_validators_hash : vector<u8> = vector[134, 139, 98, 150, 106, 150, 247, 237, 210, 15, 18, 13, 96, 188, 127, 179, 149, 180, 248, 177, 122, 226, 36, 102, 220, 134, 180, 166, 202, 156, 46, 47];
-        let root: vector<u8> = vector[250, 71, 122, 95, 80, 76, 172, 76, 196, 66, 160, 101, 147, 54, 30, 152, 195, 50, 162, 105, 97, 187, 215, 244, 26, 19, 62, 215, 255, 219, 119, 109];
+        let root: vector<u8> = vector [222, 214, 151, 33, 57, 37, 65, 124, 71, 149, 131, 107, 9, 116, 118, 94, 13, 121, 213, 209, 179, 203, 245, 245, 210, 28, 120, 191, 180, 52, 97, 180];
 
         (
             height, 
@@ -150,7 +150,7 @@ module dwallet_system::lc_tests {
 
         let ctx = test_scenario::ctx(&mut scenario);
 
-        let client = init_client(height, vector[105, 98, 99, 45, 48], 0, 5 * 365 * 24 * 60 * 60, 40, ctx);
+        let client = init_client(height, vector[111, 115, 109, 111, 115, 105, 115, 45, 49], 0, 5 * 365 * 24 * 60 * 60, 40, ctx);
 	init_consensus_state(&mut client, height, timestamp, next_validators_hash, root);
 
 	
