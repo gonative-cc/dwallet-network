@@ -43,7 +43,7 @@ module dwallet_system::native_dwallet_tests {
         let ctx = test_scenario::ctx(&mut scenario);
         let dwallet_cap = create_dwallet_cap(ctx);
         let height = 10;
-	let native_dwallet_cap =  link_dwallet(&client, dwallet_cap, height, proof, prefix, path, value, ctx);
+	let native_dwallet_cap = link_dwallet(&client, dwallet_cap, height, proof, prefix, path, value, ctx);
         test_utils::destroy(native_dwallet_cap);
         test_utils::destroy(client);
         test_scenario::end(scenario);
