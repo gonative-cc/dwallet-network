@@ -176,7 +176,7 @@ fn tendermint_options(
     let Ok(trust_threshold) = TryInto::<u64>::try_into(trust_threashold) else {
         return Err(NativeError::TypeInvalid);
     };
-    
+
     let Ok(trusting_period) = trusting_period.try_into() else {
         return Err(NativeError::TypeInvalid);
     };
@@ -184,7 +184,7 @@ fn tendermint_options(
     let trust_threshold = match trust_threshold {
         0 => TrustThreshold::ONE_THIRD,
         1 => TrustThreshold::TWO_THIRDS,
-        _ => return Err(NativeError::TypeInvalid)
+        _ => return Err(NativeError::TypeInvalid),
     };
 
     let options = Options {
@@ -213,27 +213,24 @@ pub fn tendermint_verify_lc(
 
     let trusting_period = pop_arg!(args, U256);
     let trust_threashold = pop_arg!(args, U256);
-    let clock_drift = pop_arg!(args, U256);    
+    let clock_drift = pop_arg!(args, U256);
     let chain_id = pop_arg!(args, Vector).to_vec_u8()?;
 
-    
     let options = match tendermint_options(clock_drift, trust_threashold, trusting_period) {
         Ok(options) => options,
         Err(err) => return Ok(NativeResult::err(context.gas_used(), err as u64)),
     };
 
-
     let chain_id_str = match std::str::from_utf8(&chain_id) {
         Ok(s) => s,
         Err(e) => {
             println!("{}", e);
-            return Ok(NativeResult::err(context.gas_used(), 0))
-        },
+            return Ok(NativeResult::err(context.gas_used(), 0));
+        }
     };
 
     let chain_id = ChainId::new(chain_id_str).unwrap();
 
-    
     match tendermint_verify_type_check(header, commitment_root, next_validators_hash, timestamp) {
         Ok((header, cs, timestamp)) => {
             let result = verify_header_lc::<Sha256>(
