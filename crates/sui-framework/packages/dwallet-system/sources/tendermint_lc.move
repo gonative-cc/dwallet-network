@@ -19,7 +19,7 @@ module dwallet_system::tendermint_lc {
     struct Client has key, store {
         id: UID,
 	chain_id: vector<u8>,
-	trust_threashold: u256,
+	trust_threshold: u256,
 	trusting_period: u256,
 	unbonding_period: u256,
 	clock_drift: u256,
@@ -30,13 +30,13 @@ module dwallet_system::tendermint_lc {
 	frozen_height: option::Option<u256>	
     }
 
-    public fun init_client(height: u64, chain_id: vector<u8>, trust_threashold: u256, trusting_period: u256, clock_drift: u256, ctx: &mut TxContext): Client {
+    public fun init_client(height: u64, chain_id: vector<u8>, trust_threshold: u256, trusting_period: u256, clock_drift: u256, ctx: &mut TxContext): Client {
 	Client {
             id: object::new(ctx),
 	    // chain_id: vector[105, 98, 99, 45, 48],
 	    chain_id: chain_id,
             latest_height: height,
-	    trust_threashold: trust_threashold,
+	    trust_threshold: trust_threshold,
 	    trusting_period: trusting_period,
 	    unbonding_period: 0,
 	    clock_drift: clock_drift,
@@ -142,6 +142,6 @@ module dwallet_system::tendermint_lc {
         tendermint_state_proof(proof, cs.commitment_root, prefix, path, value)
     }
     public native fun extract_consensus_state(header:vector<u8>): ConsensusState;
-    native fun tendermint_verify_lc(chain_id: vector<u8>, clock_drift: u256, trust_threadshold: u256, trust_period: u256, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, header: vector<u8>): bool; 
+    native fun tendermint_verify_lc(chain_id: vector<u8>, clock_drift: u256, trust_threshold: u256, trust_period: u256, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, header: vector<u8>): bool; 
     public native fun tendermint_state_proof(proof: vector<u8>, root: vector<u8>, prefix: vector<u8>, path: vector<u8>, value: vector<u8>): bool; 
 }
