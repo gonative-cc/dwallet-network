@@ -4,7 +4,6 @@ module dwallet_system::tendermint_lc {
     use dwallet::object::{UID, Self, ID};
     use dwallet::tx_context::TxContext;
     use dwallet::dynamic_field as field;
-    use std::option as option;
     
     const PrefixInvalid: u64 = 0;
     const PathInvalid: u64 = 1;
@@ -21,29 +20,18 @@ module dwallet_system::tendermint_lc {
 	chain_id: vector<u8>,
 	trust_threshold: u256,
 	trusting_period: u256,
-	unbonding_period: u256,
 	clock_drift: u256,
 	latest_height: u64,
-	proof_specs: u256,
-	upgrade_path: vector<u8>,
-	allow_update: u256,
-	frozen_height: option::Option<u256>	
     }
 
     public fun init_client(height: u64, chain_id: vector<u8>, trust_threshold: u256, trusting_period: u256, clock_drift: u256, ctx: &mut TxContext): Client {
 	Client {
             id: object::new(ctx),
-	    // chain_id: vector[105, 98, 99, 45, 48],
 	    chain_id: chain_id,
             latest_height: height,
 	    trust_threshold: trust_threshold,
 	    trusting_period: trusting_period,
-	    unbonding_period: 0,
-	    clock_drift: clock_drift,
-	    proof_specs: 0,
-	    upgrade_path: vector[1, 2, 3],
-	    allow_update: 1,
-	    frozen_height: option::some(1),
+	    clock_drift: clock_drift
         }
     }
     
@@ -119,7 +107,7 @@ module dwallet_system::tendermint_lc {
 	let trusting_period = client.trusting_period;
 	let chain_id = client.chain_id;
 	let clock_drift = client.clock_drift;
-	let trust_threshold = client.trust_threshold;
+	let trust_threadshold = client.trust_threshold;
 	
         tendermint_verify_lc(chain_id, clock_drift, trust_threadshold, trusting_period, timestamp, next_validators_hash, commitment_root , header)
     }
