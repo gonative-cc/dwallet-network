@@ -97,7 +97,7 @@ module dwallet_system::tendermint_lc {
     }
 
 
-    /// Desc: verify the next consensus state valid
+    /// Verifies the validity of the next consensus state
     public fun verify_lc(client: &Client, header: vector<u8>): bool{
         let latest_height = client.latest_height;
         // TODO: use trusted height from header.  
@@ -113,7 +113,7 @@ module dwallet_system::tendermint_lc {
         tendermint_verify_lc(chain_id, clock_drift, trust_threadshold, trusting_period, timestamp, next_validators_hash, commitment_root , header)
     }
 
-    /// Update the new consensus header based on current consensus state
+    /// Updates the new consensus header based on the current consensus state
     public fun update_lc(client: &mut Client, header: vector<u8>) {
         if (verify_lc(client, header)) {
             let consensus_state = extract_consensus_state(header);
@@ -132,7 +132,8 @@ module dwallet_system::tendermint_lc {
         let cs = get_consensus_state(client, height);
         tendermint_state_proof(proof, cs.commitment_root, prefix, path, value)
     }
-    /// Extract Consensus state from header.
+
+    /// Extracts consensus state from the header.
     public native fun extract_consensus_state(header:vector<u8>): ConsensusState;
     /// Native function for verify tendermint lc
     native fun tendermint_verify_lc(chain_id: vector<u8>, clock_drift: u256, trust_threshold: u256, trust_period: u256, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, header: vector<u8>): bool;
