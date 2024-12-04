@@ -88,9 +88,7 @@ module dwallet_system::tendermint_lc {
         client.latest_height
     }
 
-
-    // who can do this action?
-    // this action only run one time
+    /// TODO: Design who can this action, because Ika disable smart contract deployment.
     public fun init_consensus_state(client: &mut Client, height: u64, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>) {	
         let cs = consensus_state(height, timestamp, next_validators_hash, commitment_root);
         field::add(&mut client.id, height, cs);
@@ -136,8 +134,8 @@ module dwallet_system::tendermint_lc {
     /// Extracts consensus state from the header.
     public native fun extract_consensus_state(header:vector<u8>): ConsensusState;
 
-    /// Verifies tendermint light client
+    /// Verifies a new consensus state base on current latest block
     native fun tendermint_verify_lc(chain_id: vector<u8>, clock_drift: u256, trust_threshold: u256, trust_period: u256, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, header: vector<u8>): bool;
-    /// native function for state proof
+    /// Verify the storage state of Cosmos chain
     public native fun tendermint_state_proof(proof: vector<u8>, root: vector<u8>, prefix: vector<u8>, path: vector<u8>, value: vector<u8>): bool; 
 }
