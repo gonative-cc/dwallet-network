@@ -88,7 +88,7 @@ module dwallet_system::tendermint_lc {
         client.latest_height
     }
 
-    /// TODO: Design who can this action, because Ika disable smart contract deployment.
+    /// TODO: Decide who can do this action, since Ika disables smart contract deployment.
     public fun init_consensus_state(client: &mut Client, height: u64, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>) {	
         let cs = consensus_state(height, timestamp, next_validators_hash, commitment_root);
         field::add(&mut client.id, height, cs);
@@ -108,7 +108,7 @@ module dwallet_system::tendermint_lc {
 	let clock_drift = client.clock_drift;
 	let trust_threadshold = client.trust_threshold;
 	
-        tendermint_verify_lc(chain_id, clock_drift, trust_threadshold, trusting_period, timestamp, next_validators_hash, commitment_root , header)
+        tendermint_verify_lc(chain_id, clock_drift, trust_threshold, trusting_period, timestamp, next_validators_hash, commitment_root , header)
     }
 
     /// Updates the new consensus header based on the current consensus state
