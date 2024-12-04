@@ -127,7 +127,7 @@ module dwallet_system::tendermint_lc {
         }
     }
 
-    /// Check state proof on Cosmos chain. We are verifying the state of the storage.
+    /// Checks the state proof (state of the storage) from Cosmos chain.
     public fun state_proof(client: &Client, height: u64, proof: vector<u8>, prefix: vector<u8>, path: vector<u8>, value: vector<u8>): bool {
         let cs = get_consensus_state(client, height);
         tendermint_state_proof(proof, cs.commitment_root, prefix, path, value)
@@ -135,7 +135,8 @@ module dwallet_system::tendermint_lc {
 
     /// Extracts consensus state from the header.
     public native fun extract_consensus_state(header:vector<u8>): ConsensusState;
-    /// Native function for verify tendermint lc
+
+    /// Verifies tendermint light client
     native fun tendermint_verify_lc(chain_id: vector<u8>, clock_drift: u256, trust_threshold: u256, trust_period: u256, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, header: vector<u8>): bool;
     /// native function for state proof
     public native fun tendermint_state_proof(proof: vector<u8>, root: vector<u8>, prefix: vector<u8>, path: vector<u8>, value: vector<u8>): bool; 

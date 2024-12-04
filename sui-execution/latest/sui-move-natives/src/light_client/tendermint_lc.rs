@@ -169,7 +169,6 @@ fn tendermint_options(
     trusting_period: U256,
 ) -> Result<Options, NativeError> {
     let Ok(clock_drift) = clock_drift.try_into() else {
-        println!("This is error");
         return Err(NativeError::TypeInvalid);
     };
 
@@ -224,7 +223,6 @@ pub fn tendermint_verify_lc(
     let chain_id_str = match std::str::from_utf8(&chain_id) {
         Ok(s) => s,
         Err(e) => {
-            println!("{}", e);
             return Ok(NativeResult::err(context.gas_used(), 0));
         }
     };
