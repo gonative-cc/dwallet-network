@@ -29,9 +29,9 @@ module dwallet_system::native_dwallet_tests {
 	
 	let chain_id = vector[105, 98, 99, 45, 48]; // ibc-0;
 	let trust_period = 5 * 365 * 24 * 60 * 60; // five year
-	let trusted_threadshold = 0; // 0 = 1/3, 1 = 2/3, else = error;
+	let trusted_threshold = 0; // 0 = 1/3, 1 = 2/3, else = error;
 	let clock_drift = 40;
-	let client = init_client(height, chain_id, trusted_threadshold, trust_period, clock_drift, ctx);
+	let client = init_client(height, chain_id, trusted_threshold, trust_period, clock_drift, ctx);
 	init_consensus_state(&mut client, height, timestamp, next_validators_hash, root);
 	
         (proof, prefix, path, value, root, client, scenario)

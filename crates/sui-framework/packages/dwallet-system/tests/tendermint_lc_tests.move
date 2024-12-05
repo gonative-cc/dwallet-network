@@ -36,9 +36,9 @@ module dwallet_system::lc_tests {
         let root: vector<u8> = vector[250, 71, 122, 95, 80, 76, 172, 76, 196, 66, 160, 101, 147, 54, 30, 152, 195, 50, 162, 105, 97, 187, 215, 244, 26, 19, 62, 215, 255, 219, 119, 109];
 	let chain_id = vector[105, 98, 99, 45, 48]; // ibc-0;
 	let trust_period = 5 * 365 * 24 * 60 * 60; // five year
-	let trusted_threadshold = 0; // 0 = 1/3, 1 = 2/3, else = error;
+	let trusted_threshold = 0; // 0 = 1/3, 1 = 2/3, else = error;
 	let clock_drift = 40;
-	let client = init_client(height, chain_id, trusted_threadshold, trust_period, clock_drift, ctx);
+	let client = init_client(height, chain_id, trusted_threshold, trust_period, clock_drift, ctx);
 	init_consensus_state(&mut client, height, timestamp, next_validators_hash, root);
         
         (
