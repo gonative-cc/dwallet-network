@@ -1,5 +1,5 @@
 use move_binary_format::errors::PartialVMResult;
-use move_core_types::gas_algebra::InternalGas;
+use move_core_types::{gas_algebra::InternalGas, u256::U256};
 use move_vm_runtime::native_functions::NativeContext;
 use move_vm_types::{
     loaded_data::runtime_types::Type,
@@ -30,7 +30,7 @@ use ibc::{
 };
 use smallvec::smallvec;
 use std::{error::Error, str::FromStr, time::Duration};
-use tendermint::crypto::default::Sha256;
+use tendermint::{crypto::default::Sha256, trust_threshold};
 use tendermint::{merkle::MerkleHash, Hash, Time};
 use tendermint_light_client_verifier::{
     options::Options,
@@ -47,8 +47,6 @@ pub struct TendermintLightClientCostParams {
     pub tendermint_extract_consensus_state_base: InternalGas,
 }
 
-const INVALID_INPUT: u64 = 0;
-
 enum NativeError {
     PrefixInvalid = 0,
     PathInvalid,
@@ -57,6 +55,7 @@ enum NativeError {
     HeaderInvalid,
     TimestampInvalid,
     NextValidatorsHashInvalid,
+    TypeInvalid,
 }
 
 fn state_proof_type_check(
@@ -164,6 +163,38 @@ fn tendermint_verify_type_check(
     Ok((header, cs, timestamp))
 }
 
+fn tendermint_options(
+    clock_drift: U256,
+    trust_threashold: U256,
+    trusting_period: U256,
+) -> Result<Options, NativeError> {
+    let Ok(clock_drift) = clock_drift.try_into() else {
+        return Err(NativeError::TypeInvalid);
+    };
+
+    let Ok(trust_threshold) = TryInto::<u64>::try_into(trust_threashold) else {
+        return Err(NativeError::TypeInvalid);
+    };
+
+    let Ok(trusting_period) = trusting_period.try_into() else {
+        return Err(NativeError::TypeInvalid);
+    };
+
+    let trust_threshold = match trust_threshold {
+        0 => TrustThreshold::ONE_THIRD,
+        1 => TrustThreshold::TWO_THIRDS,
+        _ => return Err(NativeError::TypeInvalid),
+    };
+
+    let options = Options {
+        clock_drift: Duration::new(clock_drift, 0),
+        trust_threshold,
+        trusting_period: Duration::new(trusting_period, 0),
+    };
+
+    Ok(options)
+}
+
 // TODO: remove trace and add document for this funciton.
 #[instrument(level = "trace", skip_all, err)]
 pub fn tendermint_verify_lc(
@@ -171,7 +202,7 @@ pub fn tendermint_verify_lc(
     ty_args: Vec<Type>,
     mut args: VecDeque<Value>,
 ) -> PartialVMResult<NativeResult> {
-    assert!(args.len() == 4);
+    assert!(args.len() == 8);
     assert!(ty_args.len() == 0);
 
     let header = pop_arg!(args, Vector).to_vec_u8()?;
@@ -179,18 +210,27 @@ pub fn tendermint_verify_lc(
     let next_validators_hash = pop_arg!(args, Vector).to_vec_u8()?;
     let timestamp = pop_arg!(args, Vector).to_vec_u8()?;
 
+    let trusting_period = pop_arg!(args, U256);
+    let trust_threashold = pop_arg!(args, U256);
+    let clock_drift = pop_arg!(args, U256);
+    let chain_id = pop_arg!(args, Vector).to_vec_u8()?;
+
+    let options = match tendermint_options(clock_drift, trust_threashold, trusting_period) {
+        Ok(options) => options,
+        Err(err) => return Ok(NativeResult::err(context.gas_used(), err as u64)),
+    };
+
+    let chain_id_str = match std::str::from_utf8(&chain_id) {
+        Ok(s) => s,
+        Err(e) => {
+            return Ok(NativeResult::err(context.gas_used(), 0));
+        }
+    };
+
+    let chain_id = ChainId::new(chain_id_str).unwrap();
+
     match tendermint_verify_type_check(header, commitment_root, next_validators_hash, timestamp) {
         Ok((header, cs, timestamp)) => {
-            // move those data to init lc method
-            let five_year: u64 = 5 * 365 * 24 * 60 * 60;
-            let options = Options {
-                clock_drift: Duration::new(40, 0),
-                trust_threshold: TrustThreshold::ONE_THIRD,
-                trusting_period: Duration::new(five_year, 0),
-            };
-
-            // TODO: Move chain_id to init lc method
-            let chain_id = ChainId::new("ibc-0").unwrap();
             let result = verify_header_lc::<Sha256>(
                 &chain_id,
                 &cs,

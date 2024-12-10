@@ -2,7 +2,7 @@
 #[allow(unused_function, unused_field, unused_use)]
 module dwallet_system::native_dwallet_tests {
 
-    use dwallet_system::tendermint_lc::{Self, Client, init_lc};
+    use dwallet_system::tendermint_lc::{Self, Client, init_consensus_state, init_client};
     use dwallet::test_scenario;
 
     use dwallet_system::native_dwallet::{link_dwallet, verify_native_transaction};
@@ -23,8 +23,17 @@ module dwallet_system::native_dwallet_tests {
 
         let height: u64 = 10;
         let ctx = test_scenario::ctx(&mut scenario);
-	let 	(proof, prefix, path, value, root) = state_proof_test_data();
-        let client = init_lc(height, timestamp, next_validators_hash, root, ctx);
+
+	
+	let (proof, prefix, path, value, root) = state_proof_test_data();
+	
+	let chain_id = vector[105, 98, 99, 45, 48]; // ibc-0;
+	let trust_period = 5 * 365 * 24 * 60 * 60; // five year
+	let trusted_threshold = 0; // 0 = 1/3, 1 = 2/3, else = error;
+	let clock_drift = 40;
+	let client = init_client(height, chain_id, trusted_threshold, trust_period, clock_drift, ctx);
+	init_consensus_state(&mut client, height, timestamp, next_validators_hash, root);
+	
         (proof, prefix, path, value, root, client, scenario)
     }
     
@@ -34,7 +43,7 @@ module dwallet_system::native_dwallet_tests {
         let ctx = test_scenario::ctx(&mut scenario);
         let dwallet_cap = create_dwallet_cap(ctx);
         let height = 10;
-	let native_dwallet_cap =  link_dwallet(&client, dwallet_cap, height, proof, prefix, path, value, ctx);
+	let native_dwallet_cap = link_dwallet(&client, dwallet_cap, height, proof, prefix, path, value, ctx);
         test_utils::destroy(native_dwallet_cap);
         test_utils::destroy(client);
         test_scenario::end(scenario);
@@ -42,7 +51,7 @@ module dwallet_system::native_dwallet_tests {
 
     #[test]
     fun verify_native_transaction_test() {
-           let (proof, prefix, path, value, _root, client, scenario) = setup();
+        let (proof, prefix, path, value, _root, client, scenario) = setup();
         let ctx = test_scenario::ctx(&mut scenario);
         let dwallet_cap = create_dwallet_cap(ctx);
         let height = 10;

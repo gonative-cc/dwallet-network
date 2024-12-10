@@ -4,7 +4,6 @@ module dwallet_system::tendermint_lc {
     use dwallet::object::{UID, Self, ID};
     use dwallet::tx_context::TxContext;
     use dwallet::dynamic_field as field;
-
     
     const PrefixInvalid: u64 = 0;
     const PathInvalid: u64 = 1;
@@ -14,13 +13,28 @@ module dwallet_system::tendermint_lc {
     const TimestampInvalid: u64 = 5; 
     const NextValidatorsHashInvalid: u64 = 6; 
     const EUpdateFailed: u64 = 7;
-
+    
     // TODO: Make Client shareobject
     struct Client has key, store {
         id: UID,
-        latest_height: u64
+	chain_id: vector<u8>,
+	trust_threshold: u256,
+	trusting_period: u256,
+	clock_drift: u256,
+	latest_height: u64,
     }
 
+    public fun init_client(height: u64, chain_id: vector<u8>, trust_threshold: u256, trusting_period: u256, clock_drift: u256, ctx: &mut TxContext): Client {
+	Client {
+            id: object::new(ctx),
+	    chain_id: chain_id,
+            latest_height: height,
+	    trust_threshold: trust_threshold,
+	    trusting_period: trusting_period,
+	    clock_drift: clock_drift
+        }
+    }
+    
     public fun client_id(client: &Client): ID {
         object::id(client)
     }
@@ -74,20 +88,20 @@ module dwallet_system::tendermint_lc {
         client.latest_height
     }
 
-    public fun init_lc(height: u64, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, ctx: &mut TxContext): Client {
-        let client = Client {
-            id: object::new(ctx),
-            latest_height: height
-        };
-
+    /// TODO: Decide who can do this action, since Ika disables smart contract deployment.
+    public fun init_consensus_state(
+	client: &mut Client,
+	height: u64,
+	timestamp: vector<u8>,
+	next_validators_hash: vector<u8>,
+	commitment_root: vector<u8>
+    ) {	
         let cs = consensus_state(height, timestamp, next_validators_hash, commitment_root);
         field::add(&mut client.id, height, cs);
-        // public object anyone call call client
-        // transfer::share_object(client);
-        client
     }
 
-    
+
+    /// Verifies the validity of the next consensus state
     public fun verify_lc(client: &Client, header: vector<u8>): bool{
         let latest_height = client.latest_height;
         // TODO: use trusted height from header.  
@@ -96,9 +110,18 @@ module dwallet_system::tendermint_lc {
         let next_validators_hash = consensus_state.next_validators_hash;
         let commitment_root = consensus_state.commitment_root;
 
-        tendermint_verify_lc(timestamp, next_validators_hash, commitment_root , header)
+        tendermint_verify_lc(
+	    client.chain_id,
+	    client.clock_drift,
+	    client.trust_threshold,
+	    client.trusting_period,
+	    timestamp,
+	    next_validators_hash,
+	    commitment_root,
+	    header)
     }
 
+    /// Updates the new consensus header based on the current consensus state
     public fun update_lc(client: &mut Client, header: vector<u8>) {
         if (verify_lc(client, header)) {
             let consensus_state = extract_consensus_state(header);
@@ -112,11 +135,40 @@ module dwallet_system::tendermint_lc {
         }
     }
 
-    public fun state_proof(client: &Client, height: u64, proof: vector<u8>, prefix: vector<u8>, path: vector<u8>, value: vector<u8>): bool {
+    /// Checks the state proof (state of the storage) from Cosmos chain.
+    public fun state_proof(
+	client: &Client,
+	height: u64,
+	proof: vector<u8>,
+	prefix: vector<u8>,
+	path: vector<u8>,
+	value: vector<u8>
+    ): bool {
         let cs = get_consensus_state(client, height);
         tendermint_state_proof(proof, cs.commitment_root, prefix, path, value)
     }
+
+    /// Extracts consensus state from the header.
     public native fun extract_consensus_state(header:vector<u8>): ConsensusState;
-    native fun tendermint_verify_lc(timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>, header: vector<u8>): bool; 
-    public native fun tendermint_state_proof(proof: vector<u8>, root: vector<u8>, prefix: vector<u8>, path: vector<u8>, value: vector<u8>): bool; 
+
+    /// Verifies a new consensus state base on current latest block
+    native fun tendermint_verify_lc(
+	chain_id: vector<u8>,
+	clock_drift: u256,
+	trust_threshold: u256,
+	trust_period: u256,
+	timestamp: vector<u8>,
+	next_validators_hash: vector<u8>,
+	commitment_root: vector<u8>,
+	header: vector<u8>
+    ): bool;
+    
+    /// Verify the storage state of Cosmos chain
+    public native fun tendermint_state_proof(
+	proof: vector<u8>,
+	root: vector<u8>,
+	prefix: vector<u8>,
+	path: vector<u8>,
+	value: vector<u8>
+    ): bool; 
 }
