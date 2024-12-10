@@ -89,7 +89,13 @@ module dwallet_system::tendermint_lc {
     }
 
     /// TODO: Decide who can do this action, since Ika disables smart contract deployment.
-    public fun init_consensus_state(client: &mut Client, height: u64, timestamp: vector<u8>, next_validators_hash: vector<u8>, commitment_root: vector<u8>) {	
+    public fun init_consensus_state(
+	client: &mut Client,
+	height: u64,
+	timestamp: vector<u8>,
+	next_validators_hash: vector<u8>,
+	commitment_root: vector<u8>
+    ) {	
         let cs = consensus_state(height, timestamp, next_validators_hash, commitment_root);
         field::add(&mut client.id, height, cs);
     }
@@ -130,7 +136,14 @@ module dwallet_system::tendermint_lc {
     }
 
     /// Checks the state proof (state of the storage) from Cosmos chain.
-    public fun state_proof(client: &Client, height: u64, proof: vector<u8>, prefix: vector<u8>, path: vector<u8>, value: vector<u8>): bool {
+    public fun state_proof(
+	client: &Client,
+	height: u64,
+	proof: vector<u8>,
+	prefix: vector<u8>,
+	path: vector<u8>,
+	value: vector<u8>
+    ): bool {
         let cs = get_consensus_state(client, height);
         tendermint_state_proof(proof, cs.commitment_root, prefix, path, value)
     }
@@ -151,5 +164,11 @@ module dwallet_system::tendermint_lc {
     ): bool;
     
     /// Verify the storage state of Cosmos chain
-    public native fun tendermint_state_proof(proof: vector<u8>, root: vector<u8>, prefix: vector<u8>, path: vector<u8>, value: vector<u8>): bool; 
+    public native fun tendermint_state_proof(
+	proof: vector<u8>,
+	root: vector<u8>,
+	prefix: vector<u8>,
+	path: vector<u8>,
+	value: vector<u8>
+    ): bool; 
 }
