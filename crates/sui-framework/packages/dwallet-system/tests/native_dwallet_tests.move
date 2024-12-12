@@ -23,9 +23,17 @@ module dwallet_system::native_dwallet_tests {
 
         let height: u64 = 10;
         let ctx = test_scenario::ctx(&mut scenario);
+
+	
 	let (proof, prefix, path, value, root) = state_proof_test_data();
-        let client = init_client(height, vector[105, 98, 99, 45, 48], 0, 5 * 365 * 24 * 60 * 60, 40, ctx);
+	
+	let chain_id = vector[105, 98, 99, 45, 48]; // ibc-0;
+	let trust_period = 5 * 365 * 24 * 60 * 60; // five year
+	let trusted_threshold = 0; // 0 = 1/3, 1 = 2/3, else = error;
+	let clock_drift = 40;
+	let client = init_client(height, chain_id, trusted_threshold, trust_period, clock_drift, ctx);
 	init_consensus_state(&mut client, height, timestamp, next_validators_hash, root);
+	
         (proof, prefix, path, value, root, client, scenario)
     }
     
@@ -35,7 +43,7 @@ module dwallet_system::native_dwallet_tests {
         let ctx = test_scenario::ctx(&mut scenario);
         let dwallet_cap = create_dwallet_cap(ctx);
         let height = 10;
-	let native_dwallet_cap =  link_dwallet(&client, dwallet_cap, height, proof, prefix, path, value, ctx);
+	let native_dwallet_cap = link_dwallet(&client, dwallet_cap, height, proof, prefix, path, value, ctx);
         test_utils::destroy(native_dwallet_cap);
         test_utils::destroy(client);
         test_scenario::end(scenario);
