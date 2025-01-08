@@ -10,20 +10,24 @@ use move_vm_types::{
 
 use std::{collections::VecDeque, str::from_utf8};
 
-use ibc::core::commitment_types::{
-    commitment::{CommitmentPrefix, CommitmentProofBytes, CommitmentRoot},
-    merkle::{apply_prefix, MerkleProof},
-    proto::{
-        ics23::{CommitmentProof, HostFunctionsManager},
-        v1::MerklePath,
+use ibc::{
+    clients::tendermint::types::TENDERMINT_HEADER_TYPE_URL,
+    core::{
+        commitment_types::{
+            commitment::{CommitmentPrefix, CommitmentProofBytes, CommitmentRoot},
+            merkle::{MerklePath, MerkleProof},
+            proto::ics23::{CommitmentProof, HostFunctionsManager},
+            specs::ProofSpecs,
+        },
+        host::types::path::PathBytes,
     },
-    specs::ProofSpecs,
+    primitives::proto::Protobuf,
 };
 
 use prost::Message;
 
 use ibc::{
-    clients::tendermint::types::error::{Error as LcError, IntoResult},
+    clients::tendermint::types::error::{IntoResult, TendermintClientError as LcError},
     clients::tendermint::types::{ConsensusState, Header as TmHeader},
     core::{client::types::error::ClientError, host::types::identifiers::ChainId},
     primitives::{proto::Any, ToVec},
@@ -65,15 +69,7 @@ fn state_proof_type_check(
     root: Vec<u8>,
     proof: Vec<u8>,
 ) -> Result<(Vec<u8>, MerklePath, MerkleProof, CommitmentRoot), NativeError> {
-    let Ok(prefix) = CommitmentPrefix::try_from(prefix) else {
-        return Err(NativeError::PrefixInvalid);
-    };
-
-    let Ok(path_str) = from_utf8(path.as_slice()) else {
-        return Err(NativeError::PathInvalid);
-    };
-
-    let merkle_path = apply_prefix(&prefix, vec![path_str.to_owned()]);
+    let merkle_path = MerklePath::new(vec![prefix.into(), path.into()]);
 
     let Ok(proof_bytes) = CommitmentProofBytes::try_from(proof) else {
         return Err(NativeError::CommitmentProofInvalid);
@@ -130,8 +126,9 @@ fn tendermint_verify_type_check(
     next_validators_hash: Vec<u8>,
     timestamp: Vec<u8>,
 ) -> Result<(TmHeader, ConsensusState, Time), NativeError> {
-    let Ok(any) = Any::decode(&mut header.as_slice()) else {
-        return Err(NativeError::HeaderInvalid);
+    let any = Any {
+        type_url: TENDERMINT_HEADER_TYPE_URL.to_string(),
+        value: header,
     };
 
     let Ok(header) = TmHeader::try_from(any) else {
@@ -259,12 +256,9 @@ pub fn extract_consensus_state(
 ) -> PartialVMResult<NativeResult> {
     assert!(args.len() == 1);
     let header = pop_arg!(args, Vector).to_vec_u8()?;
-
-    let Ok(any) = Any::decode(&mut header.as_slice()) else {
-        return Ok(NativeResult::err(
-            context.gas_used(),
-            NativeError::HeaderInvalid as u64,
-        ));
+    let any = Any {
+        type_url: TENDERMINT_HEADER_TYPE_URL.to_string(),
+        value: header,
     };
 
     let Ok(header) = TmHeader::try_from(any) else {
@@ -274,7 +268,8 @@ pub fn extract_consensus_state(
         ));
     };
 
-    let timestamp = header.timestamp().to_string().to_vec();
+    let timestamp = header.timestamp().unwrap().encode_vec();
+
     let next_validators_hash = header
         .signed_header
         .header
@@ -330,21 +325,20 @@ pub fn verify_header_lc<H: MerkleHash + Sha256Trait + Default>(
                 &trusted_consensus_state.next_validators_hash,
             )?;
             TrustedBlockState {
-                chain_id: &chain_id
-                    .as_str()
-                    .try_into()
-                    .map_err(|e| ClientError::Other {
+                chain_id: &chain_id.as_str().try_into().map_err(|e| {
+                    ClientError::ClientSpecific {
                         description: format!("failed to parse chain id: {}", e),
-                    })?,
+                    }
+                })?,
                 header_time: trusted_consensus_state.timestamp(),
                 height: header
                     .trusted_height
                     .revision_height()
                     .try_into()
                     .map_err(|_| ClientError::ClientSpecific {
-                        description: LcError::InvalidHeaderHeight {
-                            height: header.trusted_height.revision_height(),
-                        }
+                        description: LcError::InvalidHeaderHeight(
+                            header.trusted_height.revision_height(),
+                        )
                         .to_string(),
                     })?,
                 next_validators: &header.trusted_next_validator_set,
