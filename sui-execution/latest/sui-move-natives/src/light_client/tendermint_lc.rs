@@ -11,7 +11,7 @@ use move_vm_types::{
 use std::{collections::VecDeque, str::from_utf8};
 
 use ibc::{
-    clients::tendermint::types::TENDERMINT_HEADER_TYPE_URL,
+    clients::tendermint::types::{proto::v1::Header as RawHeader, TENDERMINT_HEADER_TYPE_URL},
     core::{
         commitment_types::{
             commitment::{CommitmentPrefix, CommitmentProofBytes, CommitmentRoot},
@@ -19,18 +19,16 @@ use ibc::{
             proto::ics23::{CommitmentProof, HostFunctionsManager},
             specs::ProofSpecs,
         },
-        host::types::path::PathBytes,
     },
     primitives::proto::Protobuf,
 };
 
-use prost::Message;
+use ibc_proto::google::protobuf::Any;
 
 use ibc::{
     clients::tendermint::types::error::{IntoResult, TendermintClientError as LcError},
     clients::tendermint::types::{ConsensusState, Header as TmHeader},
     core::{client::types::error::ClientError, host::types::identifiers::ChainId},
-    primitives::{proto::Any, ToVec},
 };
 use smallvec::smallvec;
 use std::{error::Error, str::FromStr, time::Duration};
@@ -126,15 +124,13 @@ fn tendermint_verify_type_check(
     next_validators_hash: Vec<u8>,
     timestamp: Vec<u8>,
 ) -> Result<(TmHeader, ConsensusState, Time), NativeError> {
-    let any = Any {
-        type_url: TENDERMINT_HEADER_TYPE_URL.to_string(),
-        value: header,
-    };
-
-    let Ok(header) = TmHeader::try_from(any) else {
-        return Err(NativeError::HeaderInvalid);
-    };
-
+    let raw_header: RawHeader = Protobuf::<RawHeader>::decode_vec(header.as_ref()).unwrap();
+    
+    let header: TmHeader = raw_header.into();
+    // let header = TmHeader::try_from(any).unwrap();
+    // let Ok(header) = TmHeader::try_from(any) else {
+    //     return Err(NativeError::HeaderInvalid);
+    // };
     let Ok(timestamp) = String::from_utf8(timestamp) else {
         return Err(NativeError::TimestampInvalid);
     };
@@ -219,7 +215,7 @@ pub fn tendermint_verify_lc(
 
     let chain_id_str = match std::str::from_utf8(&chain_id) {
         Ok(s) => s,
-        Err(e) => {
+        _  => {
             return Ok(NativeResult::err(context.gas_used(), 0));
         }
     };

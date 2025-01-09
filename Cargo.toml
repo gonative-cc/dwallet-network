@@ -478,9 +478,9 @@ tokio-stream = { version = "0.1.14", features = ["sync", "net"] }
 tokio-util = "0.7.4"
 toml = { version = "0.7.4", features = ["preserve_order"] }
 toml_edit = { version = "0.19.10" }
-tonic = { version = "0.10", features = ["transport", "tls"] }
-tonic-build = { version = "0.10", features = ["prost", "transport"] }
-tonic-health = "0.10"
+tonic = { version = "0.12", features = ["transport", "tls"] }
+tonic-build = { version = "0.12", features = ["prost", "transport"] }
+tonic-health = "0.12"
 tower = { version = "0.4.12", features = [
   "full",
   "util",
@@ -520,6 +520,7 @@ zstd = "0.12.3"
 zeroize = "1.6.0"
 versions = "4.1.0"
 ibc = "0.56.0"
+ibc-proto = "0.51.0"
 tendermint = "0.40.0"
 tendermint-light-client-verifier = { version = "0.40.0", default-features = false }
 
