@@ -26,6 +26,7 @@ import {
 	isValidator,
 } from '../../src/dwallet-mpc/globals';
 import { createImportedDWallet } from '../../src/dwallet-mpc/import-dwallet';
+import { createNetworkKey } from '../../src/dwallet-mpc/network-dkg';
 import { presign } from '../../src/dwallet-mpc/presign';
 import {
 	isDWalletWithPublicUserSecretKeyShares,
@@ -41,6 +42,8 @@ import {
 } from '../../src/dwallet-mpc/sign';
 
 const fiveMinutes = 5 * 60 * 1000;
+// const SUI_RPC_URL = 'https://fullnode.sui.beta.devnet.ika-network.net';
+const SUI_RPC_URL = getFullnodeUrl('localnet');
 describe('Test dWallet MPC', () => {
 	let conf: Config;
 
@@ -52,7 +55,7 @@ describe('Test dWallet MPC', () => {
 		);
 		const address = keypair.getPublicKey().toSuiAddress();
 		console.log(`Address: ${address}`);
-		const suiClient = new SuiClient({ url: getFullnodeUrl('localnet') });
+		const suiClient = new SuiClient({ url: SUI_RPC_URL });
 		await requestSuiFromFaucetV2({
 			host: getFaucetHost('localnet'),
 			recipient: address,
@@ -354,6 +357,18 @@ describe('Test dWallet MPC', () => {
 
 		console.log(operatorCapIDs.join(' '));
 	});
+
+	it('should create a network key', async () => {
+		const publisherMnemonic =
+			'whisper afford shoulder vintage seed kangaroo rifle coil because weasel gospel similar';
+		const keypair: Ed25519Keypair = Ed25519Keypair.deriveKeypair(publisherMnemonic);
+		conf.suiClientKeypair = keypair;
+		await createNetworkKey(
+			conf,
+			'0x4eed37337544635334398828075b8e18c37d521b8267114d08fd09604d5519fa',
+		);
+		console.log(keypair.toSuiAddress());
+	});
 });
 
 describe('tests that do not require faucet requests', () => {
@@ -367,7 +382,7 @@ describe('tests that do not require faucet requests', () => {
 		);
 		const address = keypair.getPublicKey().toSuiAddress();
 		console.log(`Address: ${address}`);
-		const suiClient = new SuiClient({ url: getFullnodeUrl('localnet') });
+		const suiClient = new SuiClient({ url: SUI_RPC_URL });
 		conf = {
 			suiClientKeypair: keypair,
 			client: suiClient,
