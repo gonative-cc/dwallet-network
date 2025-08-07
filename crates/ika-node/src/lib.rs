@@ -166,6 +166,7 @@ use ika_core::authority::authority_perpetual_tables::AuthorityPerpetualTables;
 use ika_core::consensus_handler::ConsensusHandlerInitializer;
 use ika_core::dwallet_mpc::dwallet_mpc_metrics::DWalletMPCMetrics;
 use ika_core::dwallet_mpc::dwallet_mpc_service::DWalletMPCService;
+use ika_core::dwallet_mpc::submit_to_consensus::EpochStoreSubmitToConsensus;
 use ika_core::sui_connector::SuiConnectorService;
 use ika_core::sui_connector::end_of_publish_sender::EndOfPublishSender;
 use ika_core::sui_connector::metrics::SuiConnectorMetrics;
@@ -903,7 +904,10 @@ impl IkaNode {
         let mut dwallet_mpc_service = DWalletMPCService::new(
             epoch_store.clone(),
             dwallet_mpc_service_exit_receiver,
-            Arc::new(consensus_adapter.clone()),
+            Arc::new(EpochStoreSubmitToConsensus::new(
+                epoch_store.clone(),
+                Arc::new(consensus_adapter.clone()),
+            )),
             config.clone(),
             sui_client,
             checkpoint_service.clone(),
