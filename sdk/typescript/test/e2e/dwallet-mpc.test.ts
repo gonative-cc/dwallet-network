@@ -6,7 +6,7 @@ import {
 	public_key_from_dwallet_output,
 	sample_dwallet_keypair,
 	verify_secp_signature,
-} from '@dwallet-network/dwallet-mpc-wasm';
+} from '@ika.xyz/mpc-wasm';
 import { SuiClient } from '@mysten/sui/client';
 import { requestSuiFromFaucetV2 } from '@mysten/sui/faucet';
 import { Ed25519Keypair } from '@mysten/sui/keypairs/ed25519';
@@ -130,7 +130,7 @@ describe('Test dWallet MPC', () => {
 
 	it('run multiple full flows simultaneously', async () => {
 		const networkKeyID = await getNetworkDecryptionKeyID(conf);
-		const tasks = [];
+		const tasks: Promise<void>[] = [];
 		for (let i = 0; i < 5; i++) {
 			const conf = await createConf();
 			tasks.push(runFullFlowTestWithNetworkKey(conf, networkKeyID));
