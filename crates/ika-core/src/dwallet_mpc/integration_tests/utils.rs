@@ -43,6 +43,7 @@ pub(crate) struct IntegrationTestState {
     pub(crate) crypto_round: usize,
     pub(crate) consensus_round: usize,
     pub(crate) committee: Committee,
+    pub(crate) sui_data_senders: Vec<SuiDataSenders>,
 }
 
 /// A testing implementation of the `DWalletMPCSubmitToConsensus` trait.
@@ -410,20 +411,22 @@ pub(crate) async fn advance_some_parties_and_wait_for_completions(
     parties_to_advance: &[usize],
 ) -> Option<PendingDWalletCheckpoint> {
     let mut pending_checkpoints = vec![];
-    for i in 0..committee.voting_rights.len() {
-        if !parties_to_advance.contains(&i) {
-            continue;
-        }
-        let mut dwallet_mpc_service = dwallet_mpc_services.get_mut(i).unwrap();
-        let _ = dwallet_mpc_service.run_service_loop_iteration().await;
-        let consensus_messages_store = sent_consensus_messages_collectors[i]
-            .submitted_messages
-            .clone();
-        let pending_checkpoints_store = testing_epoch_stores[i].pending_checkpoints.clone();
-        let notify_service = notify_services[i].clone();
-        loop {
+    let mut completed_parties = vec![];
+    while completed_parties.len() < parties_to_advance.len() {
+        for i in 0..committee.voting_rights.len() {
+            if !parties_to_advance.contains(&i) || completed_parties.contains(&i) {
+                continue;
+            }
+            let mut dwallet_mpc_service = dwallet_mpc_services.get_mut(i).unwrap();
+            let _ = dwallet_mpc_service.run_service_loop_iteration().await;
+            let consensus_messages_store = sent_consensus_messages_collectors[i]
+                .submitted_messages
+                .clone();
+            let pending_checkpoints_store = testing_epoch_stores[i].pending_checkpoints.clone();
+            let notify_service = notify_services[i].clone();
             if !consensus_messages_store.lock().unwrap().is_empty() {
-                break;
+                completed_parties.push(i);
+                continue;
             }
             if *notify_service
                 .checkpoints_notification_count
@@ -439,12 +442,13 @@ pub(crate) async fn advance_some_parties_and_wait_for_completions(
                 let pending_dwallet_checkpoint = pending_checkpoint.unwrap();
                 info!(?pending_dwallet_checkpoint, party_id=?i+1, "Pending checkpoint found");
                 pending_checkpoints.push(pending_dwallet_checkpoint);
-                break;
+                completed_parties.push(i);
+                continue;
             }
 
-            tokio::time::sleep(Duration::from_millis(100)).await;
             let _ = dwallet_mpc_service.run_service_loop_iteration().await;
         }
+        tokio::time::sleep(Duration::from_millis(100)).await;
     }
     if pending_checkpoints.len() == parties_to_advance.len()
         && pending_checkpoints
@@ -492,21 +496,47 @@ pub(crate) fn override_legit_messages_with_false_messages(
         });
     }
 }
+use ika_types::messages_dwallet_mpc::test_helpers::new_dwallet_session_event;
 
 pub(crate) fn send_start_network_dkg_event(
     ika_network_config: &IkaNetworkConfig,
     epoch_id: EpochId,
     sui_data_senders: &mut Vec<SuiDataSenders>,
 ) {
+    send_configurable_start_network_dkg_event(
+        ika_network_config,
+        epoch_id,
+        sui_data_senders,
+        [1u8; 32],
+        1,
+    );
+}
+
+pub(crate) fn send_configurable_start_network_dkg_event(
+    ika_network_config: &IkaNetworkConfig,
+    epoch_id: EpochId,
+    sui_data_senders: &mut Vec<SuiDataSenders>,
+    session_identifier_preimage: [u8; 32],
+    session_sequence_number: u64,
+) {
+    let key_id = ObjectID::random();
     sui_data_senders.iter().for_each(|mut sui_data_sender| {
         let _ = sui_data_sender.uncompleted_events_sender.send((
             vec![DBSuiEvent {
                 type_: DWalletSessionEvent::<DWalletNetworkDKGEncryptionKeyRequestEvent>::type_(
                     &ika_network_config,
                 ),
-                // The base64 encoding of an actual start network DKG event.
-                contents: base64::decode("Z7MmXd0I4lvGWLDA969YOVo7wrZlXr21RMvixIFabCqAU3voWC2pRFG3QwPYD+ta0sX5poLEkq77ovCi3BBQDgEAAAAAAAAAgFN76FgtqURRt0MD2A/rWtLF+aaCxJKu+6LwotwQUA4BAQAAAAAAAAAggZwXRQsb/ha4mk5xZZfqItaokplduZGMnsuEQzdm7UTt2Z+ktotfGXHn2YVaxxqVhDM8UaafXejIDXnaPLxaMAA=").unwrap(),
-                pulled: true,
+                contents: bcs::to_bytes(&new_dwallet_session_event(
+                    true,
+                    session_sequence_number,
+                    session_identifier_preimage.to_vec().clone(),
+                    DWalletNetworkDKGEncryptionKeyRequestEvent {
+                        dwallet_network_encryption_key_id: key_id,
+                        params_for_network: vec![],
+                    },
+                ))
+                .unwrap(),
+                pulled: false,
             }],
             epoch_id,
         ));
