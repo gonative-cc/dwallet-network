@@ -111,7 +111,7 @@ importers:
 
   sdk/typescript:
     dependencies:
-      '@mehmetkircal/ika-wasm':
+      '@ika.xyz/ika-wasm':
         specifier: workspace:*
         version: link:../ika-wasm
       '@mysten/bcs':

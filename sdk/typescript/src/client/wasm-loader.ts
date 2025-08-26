@@ -1,7 +1,7 @@
 // Copyright (c) dWallet Labs, Ltd.
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 
-import type * as WasmModule from '@mehmetkircal/ika-wasm';
+import type * as WasmModule from '@ika.xyz/ika-wasm';
 
 let wasmModule: typeof WasmModule | null = null;
 let initPromise: Promise<void> | null = null;
@@ -15,7 +15,7 @@ export async function ensureWasmInitialized() {
 
 async function init() {
 	// Always import root; exports pick web vs node for us
-	const mod: any = await import('@mehmetkircal/ika-wasm');
+	const mod: any = await import('@ika.xyz/ika-wasm');
 
 	if (isNode) {
 		// Node glue self-initializes (uses fs internally)
