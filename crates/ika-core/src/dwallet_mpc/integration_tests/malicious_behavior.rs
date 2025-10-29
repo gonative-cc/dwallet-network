@@ -1,12 +1,14 @@
 use crate::dwallet_mpc::integration_tests::utils;
+use crate::dwallet_mpc::integration_tests::utils::TestingSubmitToConsensus;
+use crate::dwallet_session_request::DWalletSessionRequest;
+use crate::request_protocol_data::{NetworkEncryptionKeyDkgData, ProtocolData};
 use ika_types::committee::Committee;
-use ika_types::messages_consensus::{ConsensusTransaction, ConsensusTransactionKind};
-use ika_types::messages_dwallet_mpc::{
-    DBSuiEvent, DWalletNetworkDKGEncryptionKeyRequestEvent, DWalletSessionEvent,
-    DWalletSessionEventTrait, IkaNetworkConfig,
-};
+use ika_types::messages_consensus::ConsensusTransactionKind;
+use ika_types::messages_dwallet_mpc::{SessionIdentifier, SessionType};
 use itertools::Itertools;
 use std::collections::HashMap;
+use std::sync::Arc;
+use sui_types::base_types::ObjectID;
 use tracing::info;
 
 #[tokio::test]
@@ -26,24 +28,29 @@ async fn test_some_malicious_validators_flows_succeed() {
         committee_size,
         "Committee size should match the expected size"
     );
-    let ika_network_config = IkaNetworkConfig::new_for_testing();
     let epoch_id = 1;
     let (
         mut dwallet_mpc_services,
         sui_data_senders,
         mut sent_consensus_messages_collectors,
         mut epoch_stores,
-        mut notify_services,
+        notify_services,
     ) = utils::create_dwallet_mpc_services(committee_size);
-    sui_data_senders.iter().for_each(|mut sui_data_sender| {
+    let network_key_id = ObjectID::random();
+    sui_data_senders.iter().for_each(|sui_data_sender| {
         let _ = sui_data_sender.uncompleted_events_sender.send((
-            vec![DBSuiEvent {
-                type_: DWalletSessionEvent::<DWalletNetworkDKGEncryptionKeyRequestEvent>::type_(
-                    &ika_network_config,
-                ),
-                // The base64 encoding of an actual start network DKG event.
-                contents: base64::decode("Z7MmXd0I4lvGWLDA969YOVo7wrZlXr21RMvixIFabCqAU3voWC2pRFG3QwPYD+ta0sX5poLEkq77ovCi3BBQDgEAAAAAAAAAgFN76FgtqURRt0MD2A/rWtLF+aaCxJKu+6LwotwQUA4BAQAAAAAAAAAggZwXRQsb/ha4mk5xZZfqItaokplduZGMnsuEQzdm7UTt2Z+ktotfGXHn2YVaxxqVhDM8UaafXejIDXnaPLxaMAA=").unwrap(),
-                pulled: true,
+            vec![DWalletSessionRequest {
+                session_type: SessionType::System,
+                session_identifier: SessionIdentifier::new(SessionType::System, [1; 32]),
+                session_sequence_number: 1,
+                protocol_data: ProtocolData::NetworkEncryptionKeyDkg {
+                    data: NetworkEncryptionKeyDkgData {},
+                    dwallet_network_encryption_key_id: network_key_id,
+                },
+                epoch: 1,
+                requires_network_key_data: false,
+                requires_next_active_committee: false,
+                pulled: false,
             }],
             epoch_id,
         ));
@@ -97,7 +104,7 @@ async fn test_some_malicious_validators_flows_succeed() {
         )
         .await
         {
-            assert_eq!(mpc_round, 5, "Network DKG should complete after 4 rounds");
+            assert_eq!(mpc_round, 5, "Network DKG should complete after 5 rounds");
             info!(?pending_checkpoint, "MPC flow completed successfully");
             break;
         }
@@ -132,7 +139,6 @@ async fn test_party_copies_other_party_message_dkg_round() {
     let _ = tracing_subscriber::fmt().with_test_writer().try_init();
     let (committee, _) = Committee::new_simple_test_committee_of_size(committee_size);
     let all_malicious_parties = copying_parties.keys().collect_vec();
-    let all_flow_malicious_parties_len = all_malicious_parties.len();
     let _ = tracing_subscriber::fmt().with_test_writer().try_init();
     assert!(
         committee_size - all_malicious_parties.len() >= committee.quorum_threshold as usize,
@@ -143,24 +149,29 @@ async fn test_party_copies_other_party_message_dkg_round() {
         committee_size,
         "Committee size should match the expected size"
     );
-    let ika_network_config = IkaNetworkConfig::new_for_testing();
     let epoch_id = 1;
     let (
         mut dwallet_mpc_services,
         sui_data_senders,
         mut sent_consensus_messages_collectors,
         mut epoch_stores,
-        mut notify_services,
+        notify_services,
     ) = utils::create_dwallet_mpc_services(committee_size);
-    sui_data_senders.iter().for_each(|mut sui_data_sender| {
+    let network_key_id = ObjectID::random();
+    sui_data_senders.iter().for_each(|sui_data_sender| {
         let _ = sui_data_sender.uncompleted_events_sender.send((
-            vec![DBSuiEvent {
-                type_: DWalletSessionEvent::<DWalletNetworkDKGEncryptionKeyRequestEvent>::type_(
-                    &ika_network_config,
-                ),
-                // The base64 encoding of an actual start network DKG event.
-                contents: base64::decode("Z7MmXd0I4lvGWLDA969YOVo7wrZlXr21RMvixIFabCqAU3voWC2pRFG3QwPYD+ta0sX5poLEkq77ovCi3BBQDgEAAAAAAAAAgFN76FgtqURRt0MD2A/rWtLF+aaCxJKu+6LwotwQUA4BAQAAAAAAAAAggZwXRQsb/ha4mk5xZZfqItaokplduZGMnsuEQzdm7UTt2Z+ktotfGXHn2YVaxxqVhDM8UaafXejIDXnaPLxaMAA=").unwrap(),
-                pulled: true,
+            vec![DWalletSessionRequest {
+                session_type: SessionType::System,
+                session_identifier: SessionIdentifier::new(SessionType::System, [1; 32]),
+                session_sequence_number: 1,
+                protocol_data: ProtocolData::NetworkEncryptionKeyDkg {
+                    data: NetworkEncryptionKeyDkgData {},
+                    dwallet_network_encryption_key_id: network_key_id,
+                },
+                epoch: 1,
+                requires_network_key_data: false,
+                requires_next_active_committee: false,
+                pulled: false,
             }],
             epoch_id,
         ));
@@ -176,10 +187,9 @@ async fn test_party_copies_other_party_message_dkg_round() {
     .await;
 
     for (copying_party, copied_party) in copying_parties.iter() {
-        utils::replace_party_message_with_other_party_message(
+        replace_party_message_with_other_party_message(
             *copying_party as usize,
             *copied_party as usize,
-            mpc_round,
             &mut sent_consensus_messages_collectors,
         );
     }
@@ -226,4 +236,40 @@ async fn test_party_copies_other_party_message_dkg_round() {
             malicious_actor_name
         );
     }
+}
+
+pub(crate) fn replace_party_message_with_other_party_message(
+    party_to_replace: usize,
+    other_party: usize,
+    sent_consensus_messages_collectors: &mut [Arc<TestingSubmitToConsensus>],
+) {
+    let original_message = sent_consensus_messages_collectors[party_to_replace]
+        .submitted_messages
+        .lock()
+        .unwrap()
+        .pop()
+        .unwrap();
+
+    let mut other_party_message = sent_consensus_messages_collectors[other_party]
+        .submitted_messages
+        .lock()
+        .unwrap()
+        .first()
+        .unwrap()
+        .clone();
+    let ConsensusTransactionKind::DWalletMPCMessage(ref mut other_party_message_content) =
+        other_party_message.kind
+    else {
+        panic!("Only DWalletMPCMessage messages can be replaced with other party messages");
+    };
+    let ConsensusTransactionKind::DWalletMPCMessage(original_message) = original_message.kind
+    else {
+        panic!("Only DWalletMPCMessage messages can be replaced with other party messages");
+    };
+    other_party_message_content.authority = original_message.authority;
+    sent_consensus_messages_collectors[party_to_replace]
+        .submitted_messages
+        .lock()
+        .unwrap()
+        .push(other_party_message)
 }

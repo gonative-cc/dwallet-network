@@ -7,6 +7,7 @@ use crate::dwallet_mpc::dwallet_mpc_service::DWalletMPCService;
 use crate::epoch::submit_to_consensus::DWalletMPCSubmitToConsensus;
 use crate::{SuiDataReceivers, SuiDataSenders};
 use dwallet_classgroups_types::ClassGroupsKeyPairAndProof;
+use dwallet_mpc_types::dwallet_mpc::DWalletCurve;
 use dwallet_rng::RootSeed;
 use ika_types::committee::Committee;
 use ika_types::crypto::AuthorityName;
@@ -15,8 +16,7 @@ use ika_types::message::DWalletCheckpointMessageKind;
 use ika_types::messages_consensus::{ConsensusTransaction, ConsensusTransactionKind};
 use ika_types::messages_dwallet_checkpoint::DWalletCheckpointSignatureMessage;
 use ika_types::messages_dwallet_mpc::{
-    DBSuiEvent, DWalletMPCMessage, DWalletMPCOutput, DWalletNetworkDKGEncryptionKeyRequestEvent,
-    DWalletSessionEvent, DWalletSessionEventTrait, IkaNetworkConfig, SessionIdentifier,
+    DWalletMPCMessage, DWalletMPCOutput, SessionIdentifier, SessionType,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -107,13 +107,11 @@ impl AuthorityPerEpochStoreTrait for TestingAuthorityPerEpochStore {
         if last_consensus_round.is_none() {
             return Ok(round_to_messages
                 .get(&0)
-                .and_then(|messages| return Some((0, messages.clone()))));
+                .map(|messages| (0, messages.clone())));
         }
         Ok(round_to_messages
             .get(&(last_consensus_round.unwrap() + 1))
-            .and_then(|messages| {
-                return Some((last_consensus_round.unwrap() + 1, messages.clone()));
-            }))
+            .map(|messages| (last_consensus_round.unwrap() + 1, messages.clone())))
     }
 
     fn next_dwallet_mpc_output(
@@ -122,15 +120,11 @@ impl AuthorityPerEpochStoreTrait for TestingAuthorityPerEpochStore {
     ) -> IkaResult<Option<(Round, Vec<DWalletMPCOutput>)>> {
         let round_to_outputs = self.round_to_outputs.lock().unwrap();
         if last_consensus_round.is_none() {
-            return Ok(round_to_outputs
-                .get(&0)
-                .and_then(|outputs| return Some((0, outputs.clone()))));
+            return Ok(round_to_outputs.get(&0).map(|outputs| (0, outputs.clone())));
         }
         Ok(round_to_outputs
             .get(&(last_consensus_round.unwrap() + 1))
-            .and_then(|outputs| {
-                return Some((last_consensus_round.unwrap() + 1, outputs.clone()));
-            }))
+            .map(|outputs| (last_consensus_round.unwrap() + 1, outputs.clone())))
     }
 
     fn next_verified_dwallet_checkpoint_message(
@@ -141,13 +135,11 @@ impl AuthorityPerEpochStoreTrait for TestingAuthorityPerEpochStore {
         if last_consensus_round.is_none() {
             return Ok(round_to_verified_checkpoint
                 .get(&0)
-                .and_then(|messages| return Some((0, messages.clone()))));
+                .map(|messages| (0, messages.clone())));
         }
         Ok(round_to_verified_checkpoint
             .get(&(last_consensus_round.unwrap() + 1))
-            .and_then(|messages| {
-                return Some((last_consensus_round.unwrap() + 1, messages.clone()));
-            }))
+            .map(|messages| (last_consensus_round.unwrap() + 1, messages.clone())))
     }
 }
 
@@ -186,11 +178,7 @@ impl AuthorityStateTrait for TestingAuthorityState {
         self.dwallet_mpc_computation_completed_sessions
             .lock()
             .unwrap()
-            .extend(
-                newly_completed_session_ids
-                    .iter()
-                    .map(|id| (id.clone(), true)),
-            );
+            .extend(newly_completed_session_ids.iter().map(|id| (*id, true)));
         Ok(())
     }
 
@@ -207,7 +195,7 @@ impl AuthorityStateTrait for TestingAuthorityState {
             .filter_map(|session_id| {
                 dwallet_mpc_computation_completed_sessions
                     .get(session_id)
-                    .and_then(|_| Some((*session_id, true)))
+                    .map(|_| (*session_id, true))
             })
             .collect())
     }
@@ -216,8 +204,8 @@ impl AuthorityStateTrait for TestingAuthorityState {
 impl DWalletCheckpointServiceNotify for TestingDWalletCheckpointNotify {
     fn notify_checkpoint_signature(
         &self,
-        epoch_store: &AuthorityPerEpochStore,
-        info: &DWalletCheckpointSignatureMessage,
+        _epoch_store: &AuthorityPerEpochStore,
+        _info: &DWalletCheckpointSignatureMessage,
     ) -> IkaResult {
         todo!()
     }
@@ -229,6 +217,7 @@ impl DWalletCheckpointServiceNotify for TestingDWalletCheckpointNotify {
 }
 
 #[cfg(test)]
+#[allow(clippy::type_complexity)]
 pub fn create_dwallet_mpc_services(
     size: usize,
 ) -> (
@@ -242,21 +231,19 @@ pub fn create_dwallet_mpc_services(
     let (mut committee, _) = Committee::new_simple_test_committee_of_size(size);
     for (authority_name, _) in committee.voting_rights.iter() {
         let seed = RootSeed::random_seed();
-        seeds.insert(authority_name.clone(), seed.clone());
+        seeds.insert(*authority_name, seed.clone());
         let class_groups_key_pair = ClassGroupsKeyPairAndProof::from_seed(&seed);
         committee.class_groups_public_keys_and_proofs.insert(
-            authority_name.clone(),
+            *authority_name,
             class_groups_key_pair.encryption_key_and_proof(),
         );
     }
-    let ika_network_config = IkaNetworkConfig::new_for_testing();
     let dwallet_mpc_services = committee
         .names()
         .map(|authority_name| {
             create_dwallet_mpc_service(
                 authority_name,
                 committee.clone(),
-                ika_network_config.clone(),
                 seeds.get(authority_name).unwrap().clone(),
             )
         })
@@ -292,7 +279,6 @@ pub fn create_dwallet_mpc_services(
 fn create_dwallet_mpc_service(
     authority_name: &AuthorityName,
     committee: Committee,
-    ika_network_config: IkaNetworkConfig,
     seed: RootSeed,
 ) -> (
     DWalletMPCService,
@@ -312,9 +298,8 @@ fn create_dwallet_mpc_service(
             dwallet_submit_to_consensus.clone(),
             Arc::new(TestingAuthorityState::new()),
             checkpoint_notify.clone(),
-            authority_name.clone(),
+            *authority_name,
             committee.clone(),
-            ika_network_config.clone(),
             sui_data_receivers.clone(),
         ),
         sui_data_senders,
@@ -324,10 +309,11 @@ fn create_dwallet_mpc_service(
     )
 }
 
+#[allow(clippy::needless_range_loop)]
 pub(crate) fn send_advance_results_between_parties(
     committee: &Committee,
-    sent_consensus_messages_collectors: &mut Vec<Arc<TestingSubmitToConsensus>>,
-    epoch_stores: &mut Vec<Arc<TestingAuthorityPerEpochStore>>,
+    sent_consensus_messages_collectors: &mut [Arc<TestingSubmitToConsensus>],
+    epoch_stores: &mut [Arc<TestingAuthorityPerEpochStore>],
     new_data_consensus_round: Round,
 ) {
     for i in 0..committee.voting_rights.len() {
@@ -386,10 +372,10 @@ pub(crate) fn send_advance_results_between_parties(
 
 pub(crate) async fn advance_all_parties_and_wait_for_completions(
     committee: &Committee,
-    dwallet_mpc_services: &mut Vec<DWalletMPCService>,
-    sent_consensus_messages_collectors: &mut Vec<Arc<TestingSubmitToConsensus>>,
-    testing_epoch_stores: &Vec<Arc<TestingAuthorityPerEpochStore>>,
-    notify_services: &Vec<Arc<TestingDWalletCheckpointNotify>>,
+    dwallet_mpc_services: &mut [DWalletMPCService],
+    sent_consensus_messages_collectors: &mut [Arc<TestingSubmitToConsensus>],
+    testing_epoch_stores: &[Arc<TestingAuthorityPerEpochStore>],
+    notify_services: &[Arc<TestingDWalletCheckpointNotify>],
 ) -> Option<PendingDWalletCheckpoint> {
     advance_some_parties_and_wait_for_completions(
         committee,
@@ -404,10 +390,10 @@ pub(crate) async fn advance_all_parties_and_wait_for_completions(
 
 pub(crate) async fn advance_some_parties_and_wait_for_completions(
     committee: &Committee,
-    dwallet_mpc_services: &mut Vec<DWalletMPCService>,
-    sent_consensus_messages_collectors: &mut Vec<Arc<TestingSubmitToConsensus>>,
-    testing_epoch_stores: &Vec<Arc<TestingAuthorityPerEpochStore>>,
-    notify_services: &Vec<Arc<TestingDWalletCheckpointNotify>>,
+    dwallet_mpc_services: &mut [DWalletMPCService],
+    sent_consensus_messages_collectors: &mut [Arc<TestingSubmitToConsensus>],
+    testing_epoch_stores: &[Arc<TestingAuthorityPerEpochStore>],
+    notify_services: &[Arc<TestingDWalletCheckpointNotify>],
     parties_to_advance: &[usize],
 ) -> Option<PendingDWalletCheckpoint> {
     let mut pending_checkpoints = vec![];
@@ -417,7 +403,7 @@ pub(crate) async fn advance_some_parties_and_wait_for_completions(
             if !parties_to_advance.contains(&i) || completed_parties.contains(&i) {
                 continue;
             }
-            let mut dwallet_mpc_service = dwallet_mpc_services.get_mut(i).unwrap();
+            let dwallet_mpc_service = dwallet_mpc_services.get_mut(i).unwrap();
             let _ = dwallet_mpc_service.run_service_loop_iteration().await;
             let consensus_messages_store = sent_consensus_messages_collectors[i]
                 .submitted_messages
@@ -425,6 +411,10 @@ pub(crate) async fn advance_some_parties_and_wait_for_completions(
             let pending_checkpoints_store = testing_epoch_stores[i].pending_checkpoints.clone();
             let notify_service = notify_services[i].clone();
             if !consensus_messages_store.lock().unwrap().is_empty() {
+                info!(
+                    party_id=?i+1,
+                    "Received messages for party",
+                );
                 completed_parties.push(i);
                 continue;
             }
@@ -434,6 +424,10 @@ pub(crate) async fn advance_some_parties_and_wait_for_completions(
                 .unwrap()
                 > 0
             {
+                *notify_service
+                    .checkpoints_notification_count
+                    .lock()
+                    .unwrap() = 0;
                 let pending_checkpoint = pending_checkpoints_store.lock().unwrap().pop();
                 assert!(
                     pending_checkpoint.is_some(),
@@ -445,8 +439,15 @@ pub(crate) async fn advance_some_parties_and_wait_for_completions(
                 completed_parties.push(i);
                 continue;
             }
-
-            let _ = dwallet_mpc_service.run_service_loop_iteration().await;
+            assert_eq!(
+                dwallet_mpc_service
+                    .dwallet_mpc_manager()
+                    .cryptographic_computations_orchestrator
+                    .currently_running_cryptographic_computations
+                    .len(),
+                1,
+                "Pending for a non existent computation"
+            );
         }
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
@@ -462,24 +463,42 @@ pub(crate) async fn advance_some_parties_and_wait_for_completions(
         "Pending checkpoints are not equal across all parties: {:?}",
         pending_checkpoints
     );
+
+    for i in 0..committee.voting_rights.len() {
+        if !parties_to_advance.contains(&i) {
+            continue;
+        }
+        let dwallet_mpc_service = dwallet_mpc_services.get_mut(i).unwrap();
+        assert_eq!(
+            dwallet_mpc_service
+                .dwallet_mpc_manager()
+                .cryptographic_computations_orchestrator
+                .currently_running_cryptographic_computations
+                .len(),
+            0
+        );
+    }
+
     None
 }
 
 /// Overrides the legitimate messages of malicious parties with false messages for the given crypto round and
 /// malicious parties. When other validators receive these messages, they will mark the malicious parties as malicious.
+// TODO: itay
+#[allow(dead_code)]
 pub(crate) fn override_legit_messages_with_false_messages(
     malicious_parties: &[usize],
-    sent_consensus_messages_collectors: &mut Vec<Arc<TestingSubmitToConsensus>>,
+    sent_consensus_messages_collectors: &mut [Arc<TestingSubmitToConsensus>],
     crypto_round: u64,
 ) {
     for malicious_party_index in malicious_parties {
         // Create a malicious message for round 1, and set it as the patty's message.
-        let mut original_message = sent_consensus_messages_collectors[*malicious_party_index]
+        let original_message = sent_consensus_messages_collectors[*malicious_party_index]
             .submitted_messages
             .lock()
             .unwrap()
             .pop();
-        original_message.map(|mut original_message| {
+        if let Some(mut original_message) = original_message {
             let ConsensusTransactionKind::DWalletMPCMessage(ref mut msg) = original_message.kind
             else {
                 panic!("Only DWalletMPCMessage messages can be overridden with false messages");
@@ -493,49 +512,123 @@ pub(crate) fn override_legit_messages_with_false_messages(
                 .lock()
                 .unwrap()
                 .push(original_message);
-        });
+        };
     }
 }
-use ika_types::messages_dwallet_mpc::test_helpers::new_dwallet_session_event;
+use crate::dwallet_mpc::mpc_session::SessionStatus;
+use crate::dwallet_session_request::DWalletSessionRequest;
+use crate::request_protocol_data::{
+    DKGFirstData, DKGSecondData, NetworkEncryptionKeyDkgData, ProtocolData,
+};
 
-pub(crate) fn send_start_network_dkg_event(
-    ika_network_config: &IkaNetworkConfig,
+pub(crate) async fn send_start_network_dkg_event_to_all_parties(
     epoch_id: EpochId,
-    sui_data_senders: &mut Vec<SuiDataSenders>,
+    test_state: &mut IntegrationTestState,
+) {
+    let key_id = ObjectID::random();
+    let all_parties = &(0..test_state.sui_data_senders.len()).collect::<Vec<_>>();
+    send_configurable_start_network_dkg_event(
+        epoch_id,
+        &mut test_state.sui_data_senders,
+        [1u8; 32],
+        1,
+        all_parties,
+        key_id,
+    );
+    for dwallet_mpc_service in test_state.dwallet_mpc_services.iter_mut() {
+        dwallet_mpc_service.run_service_loop_iteration().await;
+        assert_eq!(dwallet_mpc_service.dwallet_mpc_manager().sessions.len(), 1);
+        let session = dwallet_mpc_service
+            .dwallet_mpc_manager()
+            .sessions
+            .values()
+            .next()
+            .unwrap();
+        assert!(
+            matches!(session.status, SessionStatus::Active { .. }),
+            "Session should be active"
+        );
+    }
+}
+
+pub(crate) fn send_start_network_dkg_event_to_some_parties(
+    epoch_id: EpochId,
+    sui_data_senders: &mut [SuiDataSenders],
+    parties: &[usize],
+    key_id: ObjectID,
 ) {
     send_configurable_start_network_dkg_event(
-        ika_network_config,
         epoch_id,
         sui_data_senders,
         [1u8; 32],
         1,
+        parties,
+        key_id,
     );
 }
 
 pub(crate) fn send_configurable_start_network_dkg_event(
-    ika_network_config: &IkaNetworkConfig,
     epoch_id: EpochId,
-    sui_data_senders: &mut Vec<SuiDataSenders>,
+    sui_data_senders: &mut [SuiDataSenders],
     session_identifier_preimage: [u8; 32],
     session_sequence_number: u64,
+    parties: &[usize],
+    key_id: ObjectID,
 ) {
-    let key_id = ObjectID::random();
-    sui_data_senders.iter().for_each(|mut sui_data_sender| {
-        let _ = sui_data_sender.uncompleted_events_sender.send((
-            vec![DBSuiEvent {
-                type_: DWalletSessionEvent::<DWalletNetworkDKGEncryptionKeyRequestEvent>::type_(
-                    &ika_network_config,
-                ),
-                contents: bcs::to_bytes(&new_dwallet_session_event(
-                    true,
+    sui_data_senders
+        .iter()
+        .enumerate()
+        .filter(|(i, _)| parties.contains(i))
+        .for_each(|(_, sui_data_sender)| {
+            let _ = sui_data_sender.uncompleted_events_sender.send((
+                vec![DWalletSessionRequest {
+                    session_type: SessionType::System,
+                    session_identifier: SessionIdentifier::new(
+                        SessionType::System,
+                        session_identifier_preimage,
+                    ),
                     session_sequence_number,
-                    session_identifier_preimage.to_vec().clone(),
-                    DWalletNetworkDKGEncryptionKeyRequestEvent {
+                    protocol_data: ProtocolData::NetworkEncryptionKeyDkg {
+                        data: NetworkEncryptionKeyDkgData {},
                         dwallet_network_encryption_key_id: key_id,
-                        params_for_network: vec![],
                     },
-                ))
-                .unwrap(),
+                    epoch: 1,
+                    requires_network_key_data: false,
+                    requires_next_active_committee: false,
+                    pulled: false,
+                }],
+                epoch_id,
+            ));
+        });
+}
+
+pub(crate) fn send_start_dwallet_dkg_first_round_event(
+    epoch_id: EpochId,
+    sui_data_senders: &mut [SuiDataSenders],
+    session_identifier_preimage: [u8; 32],
+    session_sequence_number: u64,
+    dwallet_network_encryption_key_id: ObjectID,
+) {
+    let dwallet_id = ObjectID::random();
+    sui_data_senders.iter().for_each(|sui_data_sender| {
+        let _ = sui_data_sender.uncompleted_events_sender.send((
+            vec![DWalletSessionRequest {
+                session_type: SessionType::User,
+                session_identifier: SessionIdentifier::new(
+                    SessionType::User,
+                    session_identifier_preimage,
+                ),
+                session_sequence_number,
+                protocol_data: ProtocolData::DKGFirst {
+                    data: DKGFirstData {
+                        curve: DWalletCurve::Secp256k1,
+                    },
+                    dwallet_id,
+                    dwallet_network_encryption_key_id,
+                },
+                epoch: 1,
+                requires_network_key_data: true,
+                requires_next_active_committee: false,
                 pulled: false,
             }],
             epoch_id,
@@ -543,44 +636,91 @@ pub(crate) fn send_configurable_start_network_dkg_event(
     });
 }
 
-pub(crate) async fn advance_parties_and_send_result_messages(
-    mut test_state: &mut IntegrationTestState,
-    parties_to_advance: &[usize],
-    malicious_parties: &[usize],
-) -> bool {
-    if let Some(pending_checkpoint) = advance_some_parties_and_wait_for_completions(
-        &test_state.committee,
-        &mut test_state.dwallet_mpc_services,
-        &mut test_state.sent_consensus_messages_collectors,
-        &test_state.epoch_stores,
-        &test_state.notify_services,
-        &parties_to_advance,
-    )
-    .await
-    {
-        info!(?pending_checkpoint, "MPC flow completed successfully");
-        return true;
+pub(crate) fn send_start_dwallet_dkg_second_round_event(
+    epoch_id: EpochId,
+    sui_data_senders: &[SuiDataSenders],
+    session_identifier_preimage: [u8; 32],
+    session_sequence_number: u64,
+    dwallet_network_encryption_key_id: ObjectID,
+    dwallet_id: ObjectID,
+    first_round_output: Vec<u8>,
+    centralized_public_key_share_and_proof: Vec<u8>,
+    encrypted_centralized_secret_share_and_proof: Vec<u8>,
+    encryption_key: Vec<u8>,
+) {
+    let encrypted_user_secret_key_share_id = ObjectID::random();
+    sui_data_senders.iter().for_each(|sui_data_sender| {
+        let _ = sui_data_sender.uncompleted_events_sender.send((
+            vec![DWalletSessionRequest {
+                session_type: SessionType::User,
+                session_identifier: SessionIdentifier::new(
+                    SessionType::User,
+                    session_identifier_preimage,
+                ),
+                session_sequence_number,
+                protocol_data: ProtocolData::DKGSecond {
+                    data: DKGSecondData {
+                        curve: DWalletCurve::Secp256k1,
+                        encrypted_centralized_secret_share_and_proof:
+                            encrypted_centralized_secret_share_and_proof.clone(),
+                        encryption_key: encryption_key.clone(),
+                    },
+                    dwallet_id,
+                    encrypted_secret_share_id: encrypted_user_secret_key_share_id,
+                    dwallet_network_encryption_key_id,
+                    first_round_output: first_round_output.clone(),
+                    centralized_public_key_share_and_proof: centralized_public_key_share_and_proof
+                        .clone(),
+                },
+                epoch: 1,
+                requires_network_key_data: true,
+                requires_next_active_committee: false,
+                pulled: false,
+            }],
+            epoch_id,
+        ));
+    });
+}
+
+pub(crate) async fn advance_mpc_flow_until_completion(
+    test_state: &mut IntegrationTestState,
+    start_consensus_round: Round,
+) -> (Round, PendingDWalletCheckpoint) {
+    let mut consensus_round = start_consensus_round;
+    loop {
+        if let Some(pending_checkpoint) = advance_all_parties_and_wait_for_completions(
+            &test_state.committee,
+            &mut test_state.dwallet_mpc_services,
+            &mut test_state.sent_consensus_messages_collectors,
+            &test_state.epoch_stores,
+            &test_state.notify_services,
+        )
+        .await
+        {
+            info!(?pending_checkpoint, "MPC flow completed successfully");
+            return (consensus_round, pending_checkpoint);
+        }
+
+        send_advance_results_between_parties(
+            &test_state.committee,
+            &mut test_state.sent_consensus_messages_collectors,
+            &mut test_state.epoch_stores,
+            consensus_round,
+        );
+        consensus_round += 1;
     }
-    override_legit_messages_with_false_messages(
-        malicious_parties,
-        &mut test_state.sent_consensus_messages_collectors,
-        test_state.crypto_round as u64,
-    );
-    send_advance_results_between_parties(
-        &test_state.committee,
-        &mut test_state.sent_consensus_messages_collectors,
-        &mut test_state.epoch_stores,
-        test_state.consensus_round as Round,
-    );
-    false
 }
 
 pub(crate) fn replace_party_message_with_other_party_message(
     party_to_replace: usize,
     other_party: usize,
     crypto_round: u64,
-    sent_consensus_messages_collectors: &mut Vec<Arc<TestingSubmitToConsensus>>,
+    sent_consensus_messages_collectors: &mut [Arc<TestingSubmitToConsensus>],
 ) {
+    info!(
+        "Replacing party {} message with party {} message for crypto round {}",
+        party_to_replace, other_party, crypto_round
+    );
     let original_message = sent_consensus_messages_collectors[party_to_replace]
         .submitted_messages
         .lock()
@@ -600,7 +740,7 @@ pub(crate) fn replace_party_message_with_other_party_message(
     else {
         panic!("Only DWalletMPCMessage messages can be replaced with other party messages");
     };
-    let ConsensusTransactionKind::DWalletMPCMessage(mut original_message) = original_message.kind
+    let ConsensusTransactionKind::DWalletMPCMessage(original_message) = original_message.kind
     else {
         panic!("Only DWalletMPCMessage messages can be replaced with other party messages");
     };

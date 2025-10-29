@@ -33,6 +33,15 @@ use ika_types::crypto::{
 use sui_types::event::EventID;
 use sui_types::multiaddr::Multiaddr;
 
+pub fn get_testing_sui_fullnode_rpc_url() -> String {
+    std::env::var("SUI_FULLNODE_RPC_URL")
+        .unwrap_or_else(|_| LOCAL_DEFAULT_SUI_FULLNODE_RPC_URL.to_string())
+}
+
+pub fn get_testing_sui_faucet_url() -> String {
+    std::env::var("SUI_FAUCET_URL").unwrap_or_else(|_| LOCAL_DEFAULT_SUI_FAUCET_URL.to_string())
+}
+
 pub const LOCAL_DEFAULT_SUI_FULLNODE_RPC_URL: &str = "http://127.0.0.1:9000";
 pub const LOCAL_DEFAULT_SUI_FAUCET_URL: &str = "http://127.0.0.1:9123/gas";
 
@@ -70,6 +79,8 @@ pub struct SuiConnectorConfig {
     pub ika_common_package_id: ObjectID,
     /// The move package id of ika_dwallet_2pc_mpc on sui.
     pub ika_dwallet_2pc_mpc_package_id: ObjectID,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub ika_dwallet_2pc_mpc_package_id_v2: Option<ObjectID>,
     /// The move package ID of `ika_system` on sui.
     pub ika_system_package_id: ObjectID,
     /// The object ID of the Ika system on sui.

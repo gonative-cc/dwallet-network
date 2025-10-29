@@ -19,7 +19,7 @@
 //! - **signature_algorithm**: The signature algorithm (e.g., "ECDSA")
 //! - **mpc_round**: The specific round number within a protocol session
 
-use ika_types::messages_dwallet_mpc::MPCRequestInput;
+use crate::dwallet_session_request::DWalletSessionRequestMetricData;
 use prometheus::{
     GaugeVec, IntGauge, IntGaugeVec, Registry, register_gauge_vec_with_registry,
     register_int_gauge_vec_with_registry, register_int_gauge_with_registry,
@@ -38,7 +38,7 @@ pub struct DWalletMPCMetrics {
     /// This metric increments when a new MPC event is received and processing begins.
     /// It helps monitor the overall activity level and can be used to detect
     /// when new protocols are being initiated.
-    received_events_start_count: IntGaugeVec,
+    received_requests_start_count: IntGaugeVec,
 
     /// Tracks the number of advance calls made during MPC protocol execution.
     ///
@@ -48,7 +48,9 @@ pub struct DWalletMPCMetrics {
     /// the next step.
     /// It includes the round number to provide granular visibility
     /// into which specific rounds are being processed.
-    advance_calls: IntGaugeVec,
+    advance_mpc_calls: IntGaugeVec,
+
+    native_calls: IntGaugeVec,
 
     /// Tracks the number of successful advance completions during MPC protocol execution.
     ///
@@ -58,6 +60,8 @@ pub struct DWalletMPCMetrics {
     /// Comparing this with `advance_calls` can help identify failure rates
     /// and problematic rounds.
     advance_completions: IntGaugeVec,
+
+    native_completions: IntGaugeVec,
 
     /// Records the average duration of computations for each MPC round.
     computation_duration_avg: GaugeVec,
@@ -129,17 +133,24 @@ impl DWalletMPCMetrics {
                 registry
             )
             .unwrap(),
-            received_events_start_count: register_int_gauge_vec_with_registry!(
-                "dwallet_mpc_received_events_start_count",
-                "Number of received start events",
+            received_requests_start_count: register_int_gauge_vec_with_registry!(
+                "dwallet_mpc_received_requests_start_count",
+                "Number of received requests",
                 &protocol_metric_labels,
                 registry
             )
             .unwrap(),
-            advance_calls: register_int_gauge_vec_with_registry!(
+            advance_mpc_calls: register_int_gauge_vec_with_registry!(
                 "dwallet_mpc_advance_calls",
                 "Number of advance calls",
                 &round_metric_labels,
+                registry
+            )
+            .unwrap(),
+            native_calls: register_int_gauge_vec_with_registry!(
+                "dwallet_nativee_calls",
+                "Number of native session calls",
+                &protocol_metric_labels,
                 registry
             )
             .unwrap(),
@@ -161,6 +172,13 @@ impl DWalletMPCMetrics {
                 "dwallet_mpc_advance_completions",
                 "Number of advance completions",
                 &round_metric_labels,
+                registry
+            )
+            .unwrap(),
+            native_completions: register_int_gauge_vec_with_registry!(
+                "dwallet_native_completions",
+                "Number of native sessions completions",
+                &protocol_metric_labels,
                 registry
             )
             .unwrap(),
@@ -207,14 +225,14 @@ impl DWalletMPCMetrics {
     /// provided MPC event data.
     ///
     /// # Arguments
-    /// * `mpc_event_data` - The MPC protocol initialization data containing context.
-    pub fn add_completion(&self, mpc_event_data: &MPCRequestInput) {
+    /// * `protocol_data` - The MPC protocol initialization data containing context.
+    pub(crate) fn add_completion(&self, protocol_data: &DWalletSessionRequestMetricData) {
         self.completions_count
             .with_label_values(&[
-                &mpc_event_data.to_string(),
-                &mpc_event_data.get_curve(),
-                &mpc_event_data.get_hash_scheme(),
-                &mpc_event_data.get_signature_algorithm(),
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
             ])
             .inc();
     }
@@ -225,14 +243,17 @@ impl DWalletMPCMetrics {
     /// from the provided MPC event data.
     ///
     /// # Arguments
-    /// * `mpc_event_data` - The MPC protocol initialization data containing context.
-    pub fn add_received_event_start(&self, mpc_event_data: &MPCRequestInput) {
-        self.received_events_start_count
+    /// * `protocol_data` - The MPC protocol initialization data containing context.
+    pub(crate) fn add_received_request_start(
+        &self,
+        protocol_data: &DWalletSessionRequestMetricData,
+    ) {
+        self.received_requests_start_count
             .with_label_values(&[
-                &mpc_event_data.to_string(),
-                &mpc_event_data.get_curve(),
-                &mpc_event_data.get_hash_scheme(),
-                &mpc_event_data.get_signature_algorithm(),
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
             ])
             .inc();
     }
@@ -243,26 +264,49 @@ impl DWalletMPCMetrics {
     /// provided MPC event data and round information.
     ///
     /// # Arguments
-    /// * `mpc_event_data` - The MPC protocol initialization data containing context
+    /// * `protocol_data` - The MPC protocol initialization data containing context
     /// * `mpc_round` — String identifier for the specific MPC round.
-    pub fn add_advance_call(&self, request_input: &MPCRequestInput, mpc_round: &str) {
+    pub(crate) fn add_advance_mpc_call(
+        &self,
+        protocol_data: &DWalletSessionRequestMetricData,
+        mpc_round: &str,
+    ) {
         if mpc_round == "1" {
             self.session_start_count
                 .with_label_values(&[
-                    &request_input.to_string(),
-                    &request_input.get_curve(),
-                    &request_input.get_hash_scheme(),
-                    &request_input.get_signature_algorithm(),
+                    &protocol_data.to_string(),
+                    &protocol_data.curve(),
+                    &protocol_data.hash_scheme(),
+                    &protocol_data.signature_algorithm(),
                 ])
                 .inc();
         }
-        self.advance_calls
+        self.advance_mpc_calls
             .with_label_values(&[
-                &request_input.to_string(),
-                &request_input.get_curve(),
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
                 mpc_round,
-                &request_input.get_hash_scheme(),
-                &request_input.get_signature_algorithm(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
+            ])
+            .inc();
+    }
+
+    pub(crate) fn add_compute_native_call(&self, protocol_data: &DWalletSessionRequestMetricData) {
+        self.session_start_count
+            .with_label_values(&[
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
+            ])
+            .inc();
+        self.native_calls
+            .with_label_values(&[
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
             ])
             .inc();
     }
@@ -273,63 +317,63 @@ impl DWalletMPCMetrics {
     /// provided MPC event data and round information.
     ///
     /// # Arguments
-    /// * `mpc_event_data` - The MPC protocol initialization data containing context
+    /// * `protocol_metadata` - The MPC protocol initialization data containing context
     /// * `mpc_round` — String identifier for the specific MPC round.
     pub fn add_advance_completion(
         &self,
-        mpc_event_data: &MPCRequestInput,
+        protocol_data: &DWalletSessionRequestMetricData,
         mpc_round: &str,
         duration_ms: i64,
     ) {
         self.advance_completions
             .with_label_values(&[
-                &mpc_event_data.to_string(),
-                &mpc_event_data.get_curve(),
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
                 mpc_round,
-                &mpc_event_data.get_hash_scheme(),
-                &mpc_event_data.get_signature_algorithm(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
             ])
             .inc();
         let current_avg = self
             .computation_duration_avg
             .with_label_values(&[
-                &mpc_event_data.to_string(),
-                &mpc_event_data.get_curve(),
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
                 mpc_round,
-                &mpc_event_data.get_hash_scheme(),
-                &mpc_event_data.get_signature_algorithm(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
             ])
             .get();
         let advance_completions_count = self
             .advance_completions
             .with_label_values(&[
-                &mpc_event_data.to_string(),
-                &mpc_event_data.get_curve(),
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
                 mpc_round,
-                &mpc_event_data.get_hash_scheme(),
-                &mpc_event_data.get_signature_algorithm(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
             ])
             .get();
         let new_avg = (current_avg * (advance_completions_count as f64 - 1.0) + duration_ms as f64)
             / (advance_completions_count as f64);
         self.computation_duration_avg
             .with_label_values(&[
-                &mpc_event_data.to_string(),
-                &mpc_event_data.get_curve(),
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
                 mpc_round,
-                &mpc_event_data.get_hash_scheme(),
-                &mpc_event_data.get_signature_algorithm(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
             ])
             .set(new_avg);
         if advance_completions_count > 1 {
             let current_variance = self
                 .computation_duration_variance
                 .with_label_values(&[
-                    &mpc_event_data.to_string(),
-                    &mpc_event_data.get_curve(),
+                    &protocol_data.to_string(),
+                    &protocol_data.curve(),
                     mpc_round,
-                    &mpc_event_data.get_hash_scheme(),
-                    &mpc_event_data.get_signature_algorithm(),
+                    &protocol_data.hash_scheme(),
+                    &protocol_data.signature_algorithm(),
                 ])
                 .get();
             let new_variance = update_variance(
@@ -341,21 +385,105 @@ impl DWalletMPCMetrics {
             );
             self.computation_duration_variance
                 .with_label_values(&[
-                    &mpc_event_data.to_string(),
-                    &mpc_event_data.get_curve(),
+                    &protocol_data.to_string(),
+                    &protocol_data.curve(),
                     mpc_round,
-                    &mpc_event_data.get_hash_scheme(),
-                    &mpc_event_data.get_signature_algorithm(),
+                    &protocol_data.hash_scheme(),
+                    &protocol_data.signature_algorithm(),
                 ])
                 .set(new_variance);
         } else {
             self.computation_duration_variance
                 .with_label_values(&[
-                    &mpc_event_data.to_string(),
-                    &mpc_event_data.get_curve(),
+                    &protocol_data.to_string(),
+                    &protocol_data.curve(),
                     mpc_round,
-                    &mpc_event_data.get_hash_scheme(),
-                    &mpc_event_data.get_signature_algorithm(),
+                    &protocol_data.hash_scheme(),
+                    &protocol_data.signature_algorithm(),
+                ])
+                .set(0.0);
+        }
+    }
+
+    pub fn add_native_completion(
+        &self,
+        protocol_data: &DWalletSessionRequestMetricData,
+        duration_ms: i64,
+    ) {
+        self.native_completions
+            .with_label_values(&[
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
+            ])
+            .inc();
+        let current_avg = self
+            .computation_duration_avg
+            .with_label_values(&[
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
+                "0",
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
+            ])
+            .get();
+        let advance_completions_count = self
+            .native_completions
+            .with_label_values(&[
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
+            ])
+            .get();
+        let new_avg = (current_avg * (advance_completions_count as f64 - 1.0) + duration_ms as f64)
+            / (advance_completions_count as f64);
+
+        self.computation_duration_avg
+            .with_label_values(&[
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
+                "0",
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
+            ])
+            .set(new_avg);
+        if advance_completions_count > 1 {
+            let current_variance = self
+                .computation_duration_variance
+                .with_label_values(&[
+                    &protocol_data.to_string(),
+                    &protocol_data.curve(),
+                    "0",
+                    &protocol_data.hash_scheme(),
+                    &protocol_data.signature_algorithm(),
+                ])
+                .get();
+            let new_variance = update_variance(
+                current_avg,
+                new_avg,
+                current_variance,
+                duration_ms as f64,
+                advance_completions_count,
+            );
+            self.computation_duration_variance
+                .with_label_values(&[
+                    &protocol_data.to_string(),
+                    &protocol_data.curve(),
+                    "0",
+                    &protocol_data.hash_scheme(),
+                    &protocol_data.signature_algorithm(),
+                ])
+                .set(new_variance);
+        } else {
+            self.computation_duration_variance
+                .with_label_values(&[
+                    &protocol_data.to_string(),
+                    &protocol_data.curve(),
+                    "0",
+                    &protocol_data.hash_scheme(),
+                    &protocol_data.signature_algorithm(),
                 ])
                 .set(0.0);
         }
@@ -367,22 +495,22 @@ impl DWalletMPCMetrics {
     /// and labels derived from the MPC event data and round information.
     ///
     /// # Arguments
-    /// * `mpc_event_data` - The MPC protocol initialization data containing context
+    /// * `protocol_data` - The MPC protocol initialization data containing context
     /// * `mpc_round` — String identifier for the specific MPC round
     /// * `duration_ms` — Duration of the completion in milliseconds.
     pub fn set_last_completion_duration(
         &self,
-        mpc_event_data: &MPCRequestInput,
+        protocol_data: &DWalletSessionRequestMetricData,
         mpc_round: &str,
         duration_ms: i64,
     ) {
         self.last_completion_duration
             .with_label_values(&[
-                &mpc_event_data.to_string(),
-                &mpc_event_data.get_curve(),
+                &protocol_data.to_string(),
+                &protocol_data.curve(),
                 mpc_round,
-                &mpc_event_data.get_hash_scheme(),
-                &mpc_event_data.get_signature_algorithm(),
+                &protocol_data.hash_scheme(),
+                &protocol_data.signature_algorithm(),
             ])
             .set(duration_ms);
     }
