@@ -583,13 +583,19 @@ impl ProtocolCryptographicData {
                         malicious_parties,
                         private_output,
                     } => {
+                        let decentralized_output: <Secp256k1AsyncDKGProtocol as twopc_mpc::dkg::Protocol>::DecentralizedPartyDKGOutput = bcs::from_bytes(&public_output_value)?;
+                        let decentralized_output: <Secp256k1AsyncDKGProtocol as twopc_mpc::dkg::Protocol>::DecentralizedPartyTargetedDKGOutput = decentralized_output.into();
+
+                        let public_output_value =
+                            bcs::to_bytes(&VersionedDwalletDKGPublicOutput::V1(
+                                bcs::to_bytes(&decentralized_output).unwrap(),
+                            ))?;
+
                         verify_encrypted_share(
                             &data.encrypted_centralized_secret_share_and_proof,
                             // TODO (#1482): Check the protocol config and use this hack only for V1
                             // DWallets.
-                            &bcs::to_bytes(&VersionedDwalletDKGPublicOutput::V1(
-                                public_output_value.clone(),
-                            ))?,
+                            &public_output_value,
                             &data.encryption_key,
                             // DKG second is supported only for secp256k1.
                             ProtocolPublicParametersByCurve::Secp256k1(
@@ -598,13 +604,6 @@ impl ProtocolCryptographicData {
                             ProtocolVersion::from(1),
                         )?;
 
-                        let decentralized_output: <Secp256k1AsyncDKGProtocol as twopc_mpc::dkg::Protocol>::DecentralizedPartyDKGOutput = bcs::from_bytes(&public_output_value)?;
-                        let decentralized_output: <Secp256k1AsyncDKGProtocol as twopc_mpc::dkg::Protocol>::DecentralizedPartyTargetedDKGOutput = decentralized_output.into();
-
-                        let public_output_value =
-                            bcs::to_bytes(&VersionedDwalletDKGPublicOutput::V1(
-                                bcs::to_bytes(&decentralized_output).unwrap(),
-                            ))?;
                         Ok(GuaranteedOutputDeliveryRoundResult::Finalize {
                             public_output_value,
                             malicious_parties,
