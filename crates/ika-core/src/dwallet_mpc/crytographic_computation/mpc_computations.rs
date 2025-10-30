@@ -440,8 +440,10 @@ impl ProtocolCryptographicData {
                 advance_request:
                     DWalletImportedKeyVerificationAdvanceRequestByCurve::Secp256k1(advance_request),
                 protocol_version,
+                data,
                 ..
             } => compute_imported_key_verification::<Secp256k1AsyncDKGProtocol>(
+                data.curve,
                 session_id,
                 party_id,
                 access_structure,
@@ -456,8 +458,10 @@ impl ProtocolCryptographicData {
                 advance_request:
                     DWalletImportedKeyVerificationAdvanceRequestByCurve::Secp256r1(advance_request),
                 protocol_version,
+                data,
                 ..
             } => compute_imported_key_verification::<Secp256r1AsyncDKGProtocol>(
+                data.curve,
                 session_id,
                 party_id,
                 access_structure,
@@ -472,8 +476,10 @@ impl ProtocolCryptographicData {
                 advance_request:
                     DWalletImportedKeyVerificationAdvanceRequestByCurve::Curve25519(advance_request),
                 protocol_version,
+                data,
                 ..
             } => compute_imported_key_verification::<Curve25519AsyncDKGProtocol>(
+                data.curve,
                 session_id,
                 party_id,
                 access_structure,
@@ -488,8 +494,10 @@ impl ProtocolCryptographicData {
                 advance_request:
                     DWalletImportedKeyVerificationAdvanceRequestByCurve::Ristretto(advance_request),
                 protocol_version,
+                data,
                 ..
             } => compute_imported_key_verification::<RistrettoAsyncDKGProtocol>(
+                data.curve,
                 session_id,
                 party_id,
                 access_structure,
@@ -587,9 +595,9 @@ impl ProtocolCryptographicData {
                         let decentralized_output: <Secp256k1AsyncDKGProtocol as twopc_mpc::dkg::Protocol>::DecentralizedPartyTargetedDKGOutput = decentralized_output.into();
 
                         let public_output_value =
-                            bcs::to_bytes(&VersionedDwalletDKGPublicOutput::V1(
-                                bcs::to_bytes(&decentralized_output).unwrap(),
-                            ))?;
+                            bcs::to_bytes(&VersionedDwalletDKGPublicOutput::V1(bcs::to_bytes(
+                                &decentralized_output,
+                            )?))?;
 
                         verify_encrypted_share(
                             &data.encrypted_centralized_secret_share_and_proof,
@@ -616,8 +624,10 @@ impl ProtocolCryptographicData {
                 public_input: DWalletDKGPublicInputByCurve::Secp256k1DWalletDKG(public_input),
                 advance_request:
                     DWalletDKGAdvanceRequestByCurve::Secp256k1DWalletDKG(advance_request),
+                data,
                 ..
             } => Ok(compute_dwallet_dkg::<Secp256k1AsyncDKGProtocol>(
+                data.curve,
                 party_id,
                 access_structure,
                 session_id,
@@ -629,8 +639,10 @@ impl ProtocolCryptographicData {
                 public_input: DWalletDKGPublicInputByCurve::Secp256r1DWalletDKG(public_input),
                 advance_request:
                     DWalletDKGAdvanceRequestByCurve::Secp256r1DWalletDKG(advance_request),
+                data,
                 ..
             } => Ok(compute_dwallet_dkg::<Secp256r1AsyncDKGProtocol>(
+                data.curve,
                 party_id,
                 access_structure,
                 session_id,
@@ -642,8 +654,10 @@ impl ProtocolCryptographicData {
                 public_input: DWalletDKGPublicInputByCurve::Curve25519DWalletDKG(public_input),
                 advance_request:
                     DWalletDKGAdvanceRequestByCurve::Curve25519DWalletDKG(advance_request),
+                data,
                 ..
             } => Ok(compute_dwallet_dkg::<Curve25519AsyncDKGProtocol>(
+                data.curve,
                 party_id,
                 access_structure,
                 session_id,
@@ -655,8 +669,10 @@ impl ProtocolCryptographicData {
                 public_input: DWalletDKGPublicInputByCurve::RistrettoDWalletDKG(public_input),
                 advance_request:
                     DWalletDKGAdvanceRequestByCurve::RistrettoDWalletDKG(advance_request),
+                data,
                 ..
             } => Ok(compute_dwallet_dkg::<RistrettoAsyncDKGProtocol>(
+                data.curve,
                 party_id,
                 access_structure,
                 session_id,
@@ -910,6 +926,7 @@ impl ProtocolCryptographicData {
                 }
 
                 compute_dwallet_dkg_and_sign::<Secp256k1ECDSAProtocol>(
+                    data.curve,
                     party_id,
                     access_structure,
                     session_id,
@@ -939,6 +956,7 @@ impl ProtocolCryptographicData {
                 }
 
                 compute_dwallet_dkg_and_sign::<Secp256k1TaprootProtocol>(
+                    data.curve,
                     party_id,
                     access_structure,
                     session_id,
@@ -968,6 +986,7 @@ impl ProtocolCryptographicData {
                 }
 
                 compute_dwallet_dkg_and_sign::<Secp256r1ECDSAProtocol>(
+                    data.curve,
                     party_id,
                     access_structure,
                     session_id,
@@ -997,6 +1016,7 @@ impl ProtocolCryptographicData {
                 }
 
                 compute_dwallet_dkg_and_sign::<Curve25519EdDSAProtocol>(
+                    data.curve,
                     party_id,
                     access_structure,
                     session_id,
@@ -1026,6 +1046,7 @@ impl ProtocolCryptographicData {
                 }
 
                 compute_dwallet_dkg_and_sign::<RistrettoSchnorrkelSubstrateProtocol>(
+                    data.curve,
                     party_id,
                     access_structure,
                     session_id,

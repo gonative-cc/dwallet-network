@@ -50,10 +50,10 @@ pub(crate) fn verify_encrypted_share(
         .map_err(|e| DwalletMPCError::EncryptedUserShareVerificationFailed(e.to_string())),
         (
             VersionedEncryptedUserShare::V1(encrypted_centralized_secret_share_and_proof),
-            VersionedDwalletDKGPublicOutput::V2(decentralized_public_output),
+            VersionedDwalletDKGPublicOutput::V2 { dkg_output, .. },
         ) => verify_centralized_secret_key_share_proof_v2(
             encrypted_centralized_secret_share_and_proof,
-            decentralized_public_output,
+            dkg_output,
             encryption_key_value,
             protocol_public_parameters,
         )
@@ -73,7 +73,7 @@ fn verify_centralized_secret_key_share_proof_v1(
     else {
         return Err(anyhow::format_err!(
             "Secret key share proof verification for the given curve is not implemented for v1 {}",
-            protocol_public_parameters.to_string()
+            protocol_public_parameters
         ));
     };
 

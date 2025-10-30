@@ -13,9 +13,10 @@ use crate::request_protocol_data::{DWalletDKGAndSignData, SignData};
 use class_groups::CiphertextSpaceGroupElement;
 use commitment::CommitmentSizedNumber;
 use dwallet_mpc_types::dwallet_mpc::{
-    DWalletSignatureAlgorithm, MPCPublicOutput, NetworkEncryptionKeyPublicDataTrait,
+    DWalletCurve, DWalletSignatureAlgorithm, MPCPublicOutput, NetworkEncryptionKeyPublicDataTrait,
     SerializedWrappedMPCPublicOutput, VersionedDwalletDKGPublicOutput,
     VersionedNetworkEncryptionKeyPublicData, VersionedPresignOutput, VersionedUserSignedMessage,
+    public_key_from_decentralized_dkg_output_by_curve_v2,
 };
 use group::CsRng;
 use group::{HashScheme, OsCsRng, PartyID};
@@ -371,8 +372,8 @@ impl SignPublicInputByProtocol {
                                         )),
                                     )?.into()
                                 }
-                                VersionedDwalletDKGPublicOutput::V2(output) => {
-                                    bcs::from_bytes::<<Secp256k1ECDSAProtocol as dkg::Protocol>::DecentralizedPartyDKGOutput>(output.as_slice()).map_err(
+                                VersionedDwalletDKGPublicOutput::V2{dkg_output, ..} => {
+                                    bcs::from_bytes::<<Secp256k1ECDSAProtocol as dkg::Protocol>::DecentralizedPartyDKGOutput>(dkg_output.as_slice()).map_err(
                                         |_| DwalletMPCError::BcsError(bcs::Error::Custom(
                                             "Failed to deserialize decentralized DKG output V2"
                                                 .to_string(),
@@ -797,14 +798,15 @@ impl<P: twopc_mpc::sign::Protocol> SignPartyPublicInputGenerator<P> for SignPart
                     })?
                     .into()
             }
-            VersionedDwalletDKGPublicOutput::V2(output) => bcs::from_bytes::<
-                P::DecentralizedPartyDKGOutput,
-            >(output.as_slice())
-            .map_err(|e| {
-                DwalletMPCError::BcsError(bcs::Error::Custom(format!(
-                    "Failed to deserialize decentralized DKG output V2: {e}"
-                )))
-            })?,
+            VersionedDwalletDKGPublicOutput::V2 { dkg_output, .. } => {
+                bcs::from_bytes::<P::DecentralizedPartyDKGOutput>(dkg_output.as_slice()).map_err(
+                    |e| {
+                        DwalletMPCError::BcsError(bcs::Error::Custom(format!(
+                            "Failed to deserialize decentralized DKG output V2: {e}"
+                        )))
+                    },
+                )?
+            }
         };
 
         let VersionedUserSignedMessage::V1(centralized_signed_message) = centralized_signed_message;
@@ -900,8 +902,8 @@ pub(crate) fn verify_partial_signature<P: sign::Protocol>(
         VersionedDwalletDKGPublicOutput::V1(output) => {
             bcs::from_bytes::<P::DecentralizedPartyTargetedDKGOutput>(output.as_slice())?.into()
         }
-        VersionedDwalletDKGPublicOutput::V2(output) => {
-            bcs::from_bytes::<P::DecentralizedPartyDKGOutput>(output.as_slice())?
+        VersionedDwalletDKGPublicOutput::V2 { dkg_output, .. } => {
+            bcs::from_bytes::<P::DecentralizedPartyDKGOutput>(dkg_output.as_slice())?
         }
     };
 
@@ -984,6 +986,7 @@ pub fn compute_sign<P: twopc_mpc::sign::Protocol>(
 }
 
 pub fn compute_dwallet_dkg_and_sign<P: twopc_mpc::sign::Protocol>(
+    curve: DWalletCurve,
     party_id: PartyID,
     access_structure: &WeightedThresholdAccessStructure,
     session_id: CommitmentSizedNumber,
@@ -1033,13 +1036,20 @@ pub fn compute_dwallet_dkg_and_sign<P: twopc_mpc::sign::Protocol>(
                 return Err(parsed_signature_result.err().unwrap());
             }
 
-            // For Sign protocol, we don't need to wrap the output with version like presign does
-            // since the output is a standardized signature
+            let dwallet_dkg_output = bcs::to_bytes(&dwallet_dkg_output)?;
+            let public_key_bytes =
+                public_key_from_decentralized_dkg_output_by_curve_v2(curve, &dwallet_dkg_output)
+                    .map_err(|e| DwalletMPCError::InternalError(e.to_string()))?;
+            let dkg_public_output_value = bcs::to_bytes(&VersionedDwalletDKGPublicOutput::V2 {
+                public_key_bytes,
+                dkg_output: dwallet_dkg_output,
+            })?;
+
             Ok(GuaranteedOutputDeliveryRoundResult::Finalize {
                 public_output_value: bcs::to_bytes(&(
-                    bcs::to_bytes(&VersionedDwalletDKGPublicOutput::V2(bcs::to_bytes(
-                        &dwallet_dkg_output,
-                    )?))?,
+                    dkg_public_output_value,
+                    // For Sign protocol, we don't need to wrap the output with version like presign does
+                    // since the output is a standardized signature
                     &parsed_signature_result.unwrap(),
                 ))?,
                 malicious_parties,
