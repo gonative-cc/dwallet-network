@@ -16,9 +16,9 @@ lazy_static.workspace = true
 anyhow.workspace = true
 bcs.workspace = true
 crypto-bigint.workspace = true
-k256 = { version = "0.14.0-pre.11", default-features = false }
-p256 = { version = "0.14.0-pre.11", default-features = false }
-curve25519-dalek = { version = "5.0.0-pre.1", features = ["rand_core"] }
+k256.workspace = true
+p256.workspace = true
+curve25519-dalek.workspace = true
 
 [lints]
 workspace = true

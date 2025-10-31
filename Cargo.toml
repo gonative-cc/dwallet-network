@@ -79,6 +79,10 @@ twopc_mpc = { git = "https://github.com/dwallet-labs/inkrypto", rev = "60c6ef3d"
 group = { git = "https://github.com/dwallet-labs/inkrypto", features = ["os_rng"], rev = "60c6ef3d"}
 homomorphic_encryption = { git = "https://github.com/dwallet-labs/inkrypto", rev = "60c6ef3d"}
 
+k256 = { version = "0.14.0-pre.11", default-features = false }
+p256 = { version = "0.14.0-pre.11", default-features = false }
+curve25519-dalek = { version = "5.0.0-pre.1", features = ["rand_core"] }
+
 anyhow = "1.0.71"
 arc-swap = { version = "1.5.1", features = ["serde"] }
 assert_cmd = "2.0.6"

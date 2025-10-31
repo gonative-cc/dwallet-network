@@ -20,6 +20,7 @@ use dwallet_mpc_types::dwallet_mpc::{
 };
 use group::CsRng;
 use group::{HashScheme, OsCsRng, PartyID};
+use ika_protocol_config::ProtocolVersion;
 use ika_types::dwallet_mpc_error::{DwalletMPCError, DwalletMPCResult};
 use ika_types::messages_dwallet_mpc::{
     Curve25519EdDSAProtocol, RistrettoSchnorrkelSubstrateProtocol, Secp256k1ECDSAProtocol,
@@ -932,6 +933,7 @@ pub fn compute_sign<P: twopc_mpc::sign::Protocol>(
     public_input: <SignParty<P> as mpc::Party>::PublicInput,
     decryption_key_shares: Option<<SignParty<P> as AsynchronouslyAdvanceable>::PrivateInput>,
     sign_data: &SignData,
+    protocol_version: ProtocolVersion,
     rng: &mut impl CsRng,
 ) -> DwalletMPCResult<GuaranteedOutputDeliveryRoundResult> {
     let result =
@@ -959,6 +961,7 @@ pub fn compute_sign<P: twopc_mpc::sign::Protocol>(
                 parse_signature_from_sign_output(
                     &sign_data.signature_algorithm,
                     public_output_value,
+                    protocol_version,
                 );
 
             if parsed_signature_result.is_err() {
@@ -994,6 +997,7 @@ pub fn compute_dwallet_dkg_and_sign<P: twopc_mpc::sign::Protocol>(
     public_input: <DKGAndSignParty<P> as mpc::Party>::PublicInput,
     decryption_key_shares: Option<<DKGAndSignParty<P> as AsynchronouslyAdvanceable>::PrivateInput>,
     sign_data: &DWalletDKGAndSignData,
+    protocol_version: ProtocolVersion,
     rng: &mut impl CsRng,
 ) -> DwalletMPCResult<GuaranteedOutputDeliveryRoundResult> {
     let result =
@@ -1022,6 +1026,7 @@ pub fn compute_dwallet_dkg_and_sign<P: twopc_mpc::sign::Protocol>(
                 parse_signature_from_sign_output(
                     &sign_data.signature_algorithm,
                     bcs::to_bytes(&signature_output)?,
+                    protocol_version,
                 );
 
             if parsed_signature_result.is_err() {

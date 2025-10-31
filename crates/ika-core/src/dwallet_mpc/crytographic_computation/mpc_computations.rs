@@ -234,6 +234,7 @@ impl ProtocolCryptographicData {
                     public_input: public_input.clone(),
                     advance_request,
                     decryption_key_shares: decryption_key_shares.clone(),
+                    protocol_version: *protocol_version,
                 }
             }
             ProtocolData::DWalletDKGAndSign {
@@ -265,6 +266,7 @@ impl ProtocolCryptographicData {
                     public_input: public_input.clone(),
                     advance_request,
                     decryption_key_shares: decryption_key_shares.clone(),
+                    protocol_version: *protocol_version,
                 }
             }
             ProtocolData::NetworkEncryptionKeyDkg {
@@ -764,6 +766,7 @@ impl ProtocolCryptographicData {
                 advance_request: SignAdvanceRequestByProtocol::Secp256k1ECDSA(advance_request),
                 decryption_key_shares,
                 data,
+                protocol_version,
                 ..
             } => {
                 if mpc_round == MPC_SIGN_SECOND_ROUND {
@@ -784,6 +787,7 @@ impl ProtocolCryptographicData {
                     public_input,
                     Some(decryption_key_shares),
                     &data,
+                    protocol_version,
                     &mut rng,
                 )
             }
@@ -792,6 +796,7 @@ impl ProtocolCryptographicData {
                 advance_request: SignAdvanceRequestByProtocol::Secp256k1Taproot(advance_request),
                 decryption_key_shares,
                 data,
+                protocol_version,
                 ..
             } => {
                 if mpc_round == MPC_SIGN_SECOND_ROUND {
@@ -812,6 +817,7 @@ impl ProtocolCryptographicData {
                     public_input,
                     Some(decryption_key_shares),
                     &data,
+                    protocol_version,
                     &mut rng,
                 )
             }
@@ -820,6 +826,7 @@ impl ProtocolCryptographicData {
                 advance_request: SignAdvanceRequestByProtocol::Secp256r1(advance_request),
                 decryption_key_shares,
                 data,
+                protocol_version,
                 ..
             } => {
                 if mpc_round == MPC_SIGN_SECOND_ROUND {
@@ -840,6 +847,7 @@ impl ProtocolCryptographicData {
                     public_input,
                     Some(decryption_key_shares),
                     &data,
+                    protocol_version,
                     &mut rng,
                 )
             }
@@ -848,6 +856,7 @@ impl ProtocolCryptographicData {
                 advance_request: SignAdvanceRequestByProtocol::Curve25519(advance_request),
                 decryption_key_shares,
                 data,
+                protocol_version,
                 ..
             } => {
                 if mpc_round == MPC_SIGN_SECOND_ROUND {
@@ -868,6 +877,7 @@ impl ProtocolCryptographicData {
                     public_input,
                     Some(decryption_key_shares),
                     &data,
+                    protocol_version,
                     &mut rng,
                 )
             }
@@ -876,6 +886,7 @@ impl ProtocolCryptographicData {
                 advance_request: SignAdvanceRequestByProtocol::Ristretto(advance_request),
                 decryption_key_shares,
                 data,
+                protocol_version,
                 ..
             } => {
                 if mpc_round == MPC_SIGN_SECOND_ROUND {
@@ -896,6 +907,7 @@ impl ProtocolCryptographicData {
                     public_input,
                     Some(decryption_key_shares),
                     &data,
+                    protocol_version,
                     &mut rng,
                 )
             }
@@ -913,6 +925,7 @@ impl ProtocolCryptographicData {
                     DWalletDKGAndSignAdvanceRequestByProtocol::Secp256k1ECDSA(advance_request),
                 decryption_key_shares,
                 data,
+                protocol_version,
                 ..
             } => {
                 if mpc_round == MPC_SIGN_SECOND_ROUND {
@@ -934,6 +947,7 @@ impl ProtocolCryptographicData {
                     public_input,
                     Some(decryption_key_shares),
                     &data,
+                    protocol_version,
                     &mut rng,
                 )
             }
@@ -943,6 +957,7 @@ impl ProtocolCryptographicData {
                     DWalletDKGAndSignAdvanceRequestByProtocol::Secp256k1Taproot(advance_request),
                 decryption_key_shares,
                 data,
+                protocol_version,
                 ..
             } => {
                 if mpc_round == MPC_SIGN_SECOND_ROUND {
@@ -964,6 +979,7 @@ impl ProtocolCryptographicData {
                     public_input,
                     Some(decryption_key_shares),
                     &data,
+                    protocol_version,
                     &mut rng,
                 )
             }
@@ -973,6 +989,7 @@ impl ProtocolCryptographicData {
                     DWalletDKGAndSignAdvanceRequestByProtocol::Secp256r1(advance_request),
                 decryption_key_shares,
                 data,
+                protocol_version,
                 ..
             } => {
                 if mpc_round == MPC_SIGN_SECOND_ROUND {
@@ -994,6 +1011,7 @@ impl ProtocolCryptographicData {
                     public_input,
                     Some(decryption_key_shares),
                     &data,
+                    protocol_version,
                     &mut rng,
                 )
             }
@@ -1003,6 +1021,7 @@ impl ProtocolCryptographicData {
                     DWalletDKGAndSignAdvanceRequestByProtocol::Curve25519(advance_request),
                 decryption_key_shares,
                 data,
+                protocol_version,
                 ..
             } => {
                 if mpc_round == MPC_SIGN_SECOND_ROUND {
@@ -1024,6 +1043,7 @@ impl ProtocolCryptographicData {
                     public_input,
                     Some(decryption_key_shares),
                     &data,
+                    protocol_version,
                     &mut rng,
                 )
             }
@@ -1033,6 +1053,7 @@ impl ProtocolCryptographicData {
                     DWalletDKGAndSignAdvanceRequestByProtocol::Ristretto(advance_request),
                 decryption_key_shares,
                 data,
+                protocol_version,
                 ..
             } => {
                 if mpc_round == MPC_SIGN_SECOND_ROUND {
@@ -1054,6 +1075,7 @@ impl ProtocolCryptographicData {
                     public_input,
                     Some(decryption_key_shares),
                     &data,
+                    protocol_version,
                     &mut rng,
                 )
             }
@@ -1221,11 +1243,26 @@ impl ProtocolCryptographicData {
 fn parse_signature_from_sign_output(
     signature_algorithm: &DWalletSignatureAlgorithm,
     public_output_value: Vec<u8>,
+    protocol_version: ProtocolVersion,
 ) -> DwalletMPCResult<Vec<u8>> {
     match signature_algorithm {
         DWalletSignatureAlgorithm::ECDSASecp256k1 => {
             let signature: ECDSASecp256k1Signature = bcs::from_bytes(&public_output_value)?;
-            Ok(signature.to_bytes().to_vec())
+
+            match protocol_version.as_u64() {
+                1 => {
+                    // For compatability, split the signature into scalars & serialize (the v1 signature format is two scalars).
+                    let signature = signature
+                        .signature()
+                        .map_err(|e| DwalletMPCError::InternalError(e.to_string()))?;
+
+                    Ok(bcs::to_bytes(&signature.split_scalars())?)
+                }
+                2 => Ok(signature.to_bytes().to_vec()),
+                _ => Err(DwalletMPCError::UnsupportedProtocolVersion(
+                    protocol_version.as_u64(),
+                )),
+            }
         }
         DWalletSignatureAlgorithm::ECDSASecp256r1 => {
             let signature: ECDSASecp256r1Signature = bcs::from_bytes(&public_output_value)?;

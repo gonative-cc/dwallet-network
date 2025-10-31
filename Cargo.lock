@@ -5844,6 +5844,7 @@ dependencies = [
  "ika-sui-client",
  "ika-types",
  "itertools 0.14.0",
+ "k256 0.14.0-pre.11",
  "lru 0.16.0",
  "mockall 0.13.1",
  "moka",
