@@ -82,7 +82,6 @@ pub(crate) enum ProtocolCryptographicData {
         public_input: DKGAndSignPublicInputByProtocol,
         advance_request: DWalletDKGAndSignAdvanceRequestByProtocol,
         decryption_key_shares: HashMap<PartyID, SecretKeyShareSizedInteger>,
-        protocol_version: ProtocolVersion,
     },
     // TODO (#1487): Remove temporary v1 to v2 & v1 reconfiguration code
     NetworkEncryptionKeyDkgV1 {
